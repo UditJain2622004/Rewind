@@ -148,52 +148,55 @@
 }
 
 @keyframes caustics-shimmer {
-  0% {
-    filter: blur(40px) brightness(1);
+  0%, 100% {
+    opacity: 0.5;
     transform: scale(1) rotate(0deg);
   }
   50% {
-    filter: blur(50px) brightness(1.25);
-    transform: scale(1.08) rotate(3deg);
-  }
-  100% {
-    filter: blur(40px) brightness(1);
-    transform: scale(1) rotate(0deg);
+    opacity: 0.8;
+    transform: scale(1.05) rotate(3deg);
   }
 }
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-float-delayed {
   animation: float 6s ease-in-out infinite;
   animation-delay: 2s;
+  will-change: transform;
 }
 
 .animate-pulse-glow {
   animation: pulse-glow 3s ease-in-out infinite;
+  will-change: opacity;
 }
 
 .animate-liquid-morph {
   animation: liquid-morph 8s ease-in-out infinite;
+  will-change: border-radius;
 }
 
 .animate-caustics {
   animation: caustics-shimmer 6s ease-in-out infinite;
+  will-change: opacity, transform;
 }
 
 .animate-water-wave {
   animation: water-wave 12s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite;
+  will-change: transform;
 }
 
 .liquid-card {
   position: relative;
-  background: rgba(20, 20, 22, 0.7);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(20, 20, 22, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+  will-change: transform;
 }
 
 .liquid-card:hover {

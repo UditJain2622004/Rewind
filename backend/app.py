@@ -89,6 +89,14 @@ def save_draft(payload: DraftPayload):
         logger.error(f"Draft save error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/memories")
+def get_all_memories():
+    """
+    Retrieves all memory documents stored in MongoDB database.
+    """
+    memories_list = handle_get_all_memories()
+    return {"status": "success", "count": len(memories_list), "memories": memories_list}
+
 @app.get("/api/memories/draft")
 def get_draft(memory_id: Optional[str] = None):
     """

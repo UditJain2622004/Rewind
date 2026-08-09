@@ -62,7 +62,7 @@ export default function CreatePage() {
     const titleText = memoryName.trim() || 'College';
     const firstPhoto = files.find((f) => f.type === 'photo');
     const photoCdnUrl = firstPhoto ? (firstPhoto.file_url || firstPhoto.url || (firstPhoto.preview && !firstPhoto.preview.startsWith('blob:') ? firstPhoto.preview : null)) : null;
-    const coverUrl = photoCdnUrl || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80';
+    const coverUrl = photoCdnUrl || '/images/goa-cover.png';
 
     const newMemoryObj = {
       id: memoryId || `exp_${Date.now()}`,
@@ -138,30 +138,28 @@ export default function CreatePage() {
     'https://res.cloudinary.com/dynoxkmjy/image/upload/v1786251634/WhatsApp_Image_2026-08-09_at_10.17.42_wgfkrh.jpg'
   ];
 
-  const row1 = [...bgPhotos1, ...bgPhotos1, ...bgPhotos1, ...bgPhotos1];
-  const row2 = [...bgPhotos2, ...bgPhotos2, ...bgPhotos2, ...bgPhotos2];
-  const row3 = [...bgPhotos1.reverse(), ...bgPhotos1, ...bgPhotos1];
-  const row4 = [...bgPhotos2.reverse(), ...bgPhotos2, ...bgPhotos2];
+  const row1 = [...bgPhotos1, ...bgPhotos1];
+  const row2 = [...bgPhotos2, ...bgPhotos2];
 
   return (
     <main className="min-h-screen pt-20 sm:pt-24 pb-16 px-4 sm:px-6 relative overflow-hidden flex items-center justify-center bg-[#0a0a0b]">
       
-      {/* Background Full-Screen Animated Sliding Photo Wall */}
-      <div className="absolute inset-0 z-0 flex flex-col justify-between py-2 gap-4 pointer-events-none opacity-85 select-none overflow-hidden h-full w-full">
+      {/* Background Full-Screen Animated Sliding Photo Wall (Optimized) */}
+      <div className="absolute inset-0 z-0 flex flex-col justify-around py-4 gap-6 pointer-events-none opacity-40 select-none overflow-hidden h-full w-full">
         {/* Row 1 — Slides Left */}
         <div className="flex overflow-hidden w-full">
           <motion.div
             animate={{ x: ['0%', '-50%'] }}
-            transition={{ repeat: Infinity, ease: 'linear', duration: 36 }}
-            className="flex gap-5 shrink-0"
+            transition={{ repeat: Infinity, ease: 'linear', duration: 40 }}
+            className="flex gap-5 shrink-0 [will-change:transform]"
           >
             {row1.map((src, i) => (
               <div
                 key={`r1-${i}`}
-                className="relative w-64 h-36 rounded-2xl overflow-hidden bg-[#141416] border border-white/20 shadow-2xl shrink-0"
+                className="relative w-64 h-36 rounded-2xl overflow-hidden bg-[#141416] border border-white/10 shrink-0"
               >
-                <img src={src} alt="" className="w-full h-full object-cover filter brightness-[0.98] contrast-[1.05]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10" />
+                <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/30" />
               </div>
             ))}
           </motion.div>
@@ -171,66 +169,28 @@ export default function CreatePage() {
         <div className="flex overflow-hidden w-full">
           <motion.div
             animate={{ x: ['-50%', '0%'] }}
-            transition={{ repeat: Infinity, ease: 'linear', duration: 42 }}
-            className="flex gap-5 shrink-0"
+            transition={{ repeat: Infinity, ease: 'linear', duration: 45 }}
+            className="flex gap-5 shrink-0 [will-change:transform]"
           >
             {row2.map((src, i) => (
               <div
                 key={`r2-${i}`}
-                className="relative w-60 h-36 rounded-2xl overflow-hidden bg-[#141416] border border-white/20 shadow-2xl shrink-0"
+                className="relative w-60 h-36 rounded-2xl overflow-hidden bg-[#141416] border border-white/10 shrink-0"
               >
-                <img src={src} alt="" className="w-full h-full object-cover filter brightness-[0.98] contrast-[1.05]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10" />
-              </div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* Row 3 — Slides Left */}
-        <div className="flex overflow-hidden w-full">
-          <motion.div
-            animate={{ x: ['0%', '-50%'] }}
-            transition={{ repeat: Infinity, ease: 'linear', duration: 38 }}
-            className="flex gap-5 shrink-0"
-          >
-            {row3.map((src, i) => (
-              <div
-                key={`r3-${i}`}
-                className="relative w-64 h-36 rounded-2xl overflow-hidden bg-[#141416] border border-white/20 shadow-2xl shrink-0"
-              >
-                <img src={src} alt="" className="w-full h-full object-cover filter brightness-[0.98] contrast-[1.05]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10" />
-              </div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* Row 4 — Slides Right */}
-        <div className="flex overflow-hidden w-full">
-          <motion.div
-            animate={{ x: ['-50%', '0%'] }}
-            transition={{ repeat: Infinity, ease: 'linear', duration: 46 }}
-            className="flex gap-5 shrink-0"
-          >
-            {row4.map((src, i) => (
-              <div
-                key={`r4-${i}`}
-                className="relative w-60 h-36 rounded-2xl overflow-hidden bg-[#141416] border border-white/20 shadow-2xl shrink-0"
-              >
-                <img src={src} alt="" className="w-full h-full object-cover filter brightness-[0.98] contrast-[1.05]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10" />
+                <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/30" />
               </div>
             ))}
           </motion.div>
         </div>
       </div>
 
-      {/* Global dark radial vignette overlay so studio cards remain crisp */}
-      <div className="absolute inset-0 z-10 bg-radial from-transparent via-[#0a0a0b]/35 to-[#0a0a0b]/75 pointer-events-none" />
+      {/* Global dark radial vignette overlay */}
+      <div className="absolute inset-0 z-10 bg-radial from-transparent via-[#0a0a0b]/40 to-[#0a0a0b]/80 pointer-events-none" />
 
       {/* Ambient Glow Orbs */}
-      <div className="absolute top-1/4 left-10 w-[500px] h-[500px] bg-violet-600/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/4 left-10 w-[400px] h-[400px] bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Container: 2-Column Split Studio */}
       <div className="w-full max-w-5xl mx-auto relative z-20">

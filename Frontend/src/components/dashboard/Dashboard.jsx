@@ -6,6 +6,7 @@ import FeaturedMemory from './FeaturedMemory';
 import MemoryGrid from './MemoryGrid';
 import { memories, getAllMemories } from '../../data/mockData';
 import { getAllMemoriesFromAPI } from '../../services/api';
+import { formatMemoryData } from '../../hooks/useMemoryLoader';
 
 const categories = [
   { id: 'all', label: 'All' },
@@ -18,27 +19,36 @@ const categories = [
 export default function Dashboard() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [allMemoriesList, setAllMemoriesList] = useState([]);
+  const [allMemoriesList, setAllMemoriesList] = useState(() => getAllMemories());
 
   useEffect(() => {
+    let isMounted = true;
     async function loadMemories() {
       try {
         const mems = await getAllMemoriesFromAPI();
-        if (mems && mems.length > 0) {
-          setAllMemoriesList(mems);
+        if (!isMounted) return;
+        if (mems && Array.isArray(mems) && mems.length > 0) {
+          const formattedList = mems.map((m) => formatMemoryData(m.id || m._id || m.memory_id, m));
+          const existingIds = new Set(formattedList.map(m => m.id));
+          const local = getAllMemories();
+          const extraLocal = (local || []).filter(m => !existingIds.has(m.id));
+          setAllMemoriesList([...formattedList, ...extraLocal]);
         } else {
           setAllMemoriesList(getAllMemories());
         }
       } catch (err) {
         console.warn('Could not fetch memories from API:', err);
-        setAllMemoriesList(getAllMemories());
+        if (isMounted) setAllMemoriesList(getAllMemories());
       }
     }
     loadMemories();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const featured = memories[0];
   const otherMemories = allMemoriesList.length > 0 ? allMemoriesList : memories;
+  const featured = otherMemories.length > 0 ? otherMemories[0] : null;
 
   // Filter memories by category & search query
   const filteredMemories = otherMemories.filter((mem) => {
@@ -69,7 +79,7 @@ export default function Dashboard() {
             Welcome back, <span className="italic font-serif font-normal text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-100 to-purple-200">Ankush.</span>
           </h1>
           <p className="text-white/50 text-sm mt-0.5">
-            {memories.length} stories in your vault
+            {otherMemories.length} stories in your vault
           </p>
         </div>
 
@@ -88,7 +98,7 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <FeaturedMemory memory={featured} />
+        <FeaturedMemory memory={featured} items={otherMemories} />
       </motion.div>
 
       {/* Your Memories Section with Live Filters & Search */}

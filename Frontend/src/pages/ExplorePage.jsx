@@ -1,19 +1,22 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Sparkles, Users, Calendar, MapPin, Play, MessageSquare, Compass } from 'lucide-react';
-import { memories, exploreConversations, suggestedQuestions, people } from '../data/mockData';
+import { exploreConversations, suggestedQuestions, people } from '../data/mockData';
+import { useMemoryLoader } from '../hooks/useMemoryLoader';
 import MemoryExplorer from '../components/explore/MemoryExplorer';
 
 export default function ExplorePage() {
   const { id } = useParams();
-  const memory = memories.find((m) => m.id === id) || memories[0];
+  const { memory } = useMemoryLoader(id);
+
+  if (!memory) return null;
 
   return (
     <main className="min-h-screen pt-20 sm:pt-24 pb-12 px-4 sm:px-6 relative overflow-hidden flex items-center justify-center">
       
       {/* Background Glow Orbs */}
-      <div className="absolute top-1/4 left-10 w-[500px] h-[500px] bg-violet-600/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/4 left-10 w-[400px] h-[400px] bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-6xl mx-auto relative z-10">
         

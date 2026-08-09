@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { memories } from '../data/mockData';
+import { useMemoryLoader } from '../hooks/useMemoryLoader';
 import StoryPlayer from '../components/relive/StoryPlayer';
 import { getReliveData } from '../services/api';
 
 export default function RelivePage() {
   const { id } = useParams();
-  const memory = memories.find((m) => m.id === id) || memories[0];
+  const { memory } = useMemoryLoader(id);
   
   const [moments, setMoments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +41,6 @@ export default function RelivePage() {
             const audioDetails = audioMap[seg.segment_id] || {};
             const photos = (seg.asset_ids || []).map(aid => assetMap[aid]).filter(Boolean);
             
-            // Extract location info if details exist, otherwise default to IIM Bangalore
             let location = "IIM Bangalore";
             const matchingAssetId = seg.asset_ids?.[0];
             if (matchingAssetId && data.assets_manifest) {
@@ -58,19 +57,18 @@ export default function RelivePage() {
               emoji: seg.mood === "excited" ? "⚡" : seg.mood === "funny" ? "😂" : seg.mood === "somber" ? "🥺" : "🌟",
               description: seg.caption_text || seg.narration_text,
               aiNarration: seg.narration_text,
-              photos: photos.length > 0 ? photos : [memory.cover],
+              photos: photos.length > 0 ? photos : [memory?.cover || '/images/goa-cover.png'],
               audioUrl: audioDetails.audio_url || `/static/audio/${seg.segment_id}.wav`,
               duration: audioDetails.duration_sec || 5.0
             };
           });
           setMoments(compiled);
-        } else {
-          // Use fallback mock data if no segments exist
-          setMoments(memory.moments || []);
+        } else if (memory && memory.moments) {
+          setMoments(memory.moments);
         }
       } catch (err) {
-        console.warn("Failed to load relive data from backend, falling back to mock data:", err);
-        setMoments(memory.moments || []);
+        console.warn("Failed to load relive data from backend, falling back to memory moments:", err);
+        if (memory && memory.moments) setMoments(memory.moments);
       } finally {
         setIsLoading(false);
       }
@@ -89,7 +87,7 @@ export default function RelivePage() {
     );
   }
 
-  if (moments.length === 0) {
+  if (!moments || moments.length === 0) {
     return (
       <div className="fixed inset-0 bg-memory-base flex items-center justify-center">
         <div className="text-center">

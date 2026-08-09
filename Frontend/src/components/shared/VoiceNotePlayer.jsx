@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Pause } from 'lucide-react';
 
-export default function VoiceNotePlayer({ duration, transcript, compact = false }) {
+export default function VoiceNotePlayer({ duration, transcript, url, compact = false }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef(null);
+  const audioRef = useRef(null);
 
   // Generate random waveform bars
   const bars = useRef(
@@ -13,21 +14,57 @@ export default function VoiceNotePlayer({ duration, transcript, compact = false 
   ).current;
 
   useEffect(() => {
-    if (isPlaying) {
-      intervalRef.current = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            setIsPlaying(false);
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 50);
-    } else {
-      clearInterval(intervalRef.current);
+    if (url) {
+      audioRef.current = new Audio(url);
+      audioRef.current.onended = () => {
+        setIsPlaying(false);
+        setProgress(0);
+      };
+      audioRef.current.ontimeupdate = () => {
+        if (audioRef.current && audioRef.current.duration) {
+          setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+        }
+      };
     }
-    return () => clearInterval(intervalRef.current);
-  }, [isPlaying]);
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [url]);
+
+  useEffect(() => {
+    if (!url) {
+      if (isPlaying) {
+        intervalRef.current = setInterval(() => {
+          setProgress((prev) => {
+            if (prev >= 100) {
+              setIsPlaying(false);
+              return 0;
+            }
+            return prev + 1;
+          });
+        }, 50);
+      } else {
+        clearInterval(intervalRef.current);
+      }
+      return () => clearInterval(intervalRef.current);
+    }
+  }, [isPlaying, url]);
+
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch((e) => console.warn('Audio play error:', e));
+      }
+      setIsPlaying(!isPlaying);
+    } else {
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   return (
     <motion.div
@@ -37,7 +74,7 @@ export default function VoiceNotePlayer({ duration, transcript, compact = false 
     >
       <div className="flex items-center gap-3">
         <button
-          onClick={() => setIsPlaying(!isPlaying)}
+          onClick={togglePlay}
           className="w-10 h-10 rounded-full bg-memory-violet/20 hover:bg-memory-violet/30 flex items-center justify-center text-memory-lavender transition-colors flex-shrink-0"
         >
           {isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}

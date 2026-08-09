@@ -81,6 +81,12 @@ def handle_get_draft(memory_id: str = None) -> dict:
     """
     return get_active_draft(memory_id)
 
+def handle_get_all_memories() -> list:
+    """
+    Fetches all memories from MongoDB collection.
+    """
+    return get_all_memories_from_db()
+
 def handle_trigger_generation(memory_id: str) -> dict:
     """
     Transitions draft state to 'processing' and prepares AI synthesis pipeline.
