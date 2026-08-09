@@ -13,7 +13,10 @@ from typing import Any
 
 
 LOGGER = logging.getLogger("ai_memory.script_generation")
-SCRIPT_VARIANTS = ("relive", "share", "viral", "reaction", "trailer", "roast")
+SCRIPT_VARIANTS = (
+    "relive", "share", "viral", "reaction", "trailer", "roast",
+    "outsider_reaction", "roast_commentary", "village_elder",
+)
 
 
 def _client():
@@ -128,6 +131,9 @@ def _normalise_script(
 
 def _remove_em_dashes(text: str) -> str:
     """Keep TTS narration conversational without letting punctuation be read awkwardly."""
+    text = re.sub(r"\[(?:laughs?|laughter)\]|\((?:laughs?|laughter)\)", " haha ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\[(?:sighs?|sigh)\]|\((?:sighs?|sigh)\)", " uff... ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\[(?:gasps?|gasp)\]|\((?:gasps?|gasp)\)", " oh! ", text, flags=re.IGNORECASE)
     text = text.replace("—", ", ").replace("–", "-")
     return re.sub(r"\s{2,}", " ", text).strip()
 
@@ -168,16 +174,18 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
 - Example rhythm only, do not copy: "We came for glory. We left with a story and no sleep."
 - Be absurd and energetic, but never cruel, hateful, humiliating, or insulting toward real people.""",
         "reaction": """REACTION PLAYBOOK:
-- Write as an original, quick-witted reaction-video host. Do not imitate any real creator.
-- The host is amused by the situation, not mean to the people in it.
-- Open with an instant observation about the most ridiculous supported fact.
-- Use short reaction setups followed by a sharp payoff. Let pauses do part of the joke.
-- Escalate the commentary as the memory gets more sleep-deprived, ambitious, or chaotic.
-- Use recurring phrases sparingly, such as "so apparently" or "this is where it gets worse".
-- Describe what the host notices in the assets, then connect it to the voice-note context.
-- Keep the host's persona clever and conversational, not loud for the sake of it.
-- Example rhythm only, do not copy: "They said it was a quick trip. That was the first lie."
-- End on a callback that feels like a final reaction, not a formal conclusion.""",
+ - Write as an original, quick-witted reaction-video host. Do not imitate any real creator.
+ - Do not play it safe or give neutral documentary commentary. Have a strong comic opinion about every beat.
+ - Open with the most ridiculous supported fact, then immediately react as if the footage is evidence in a case.
+ - Use short reaction setups followed by sharp payoffs. Let pauses create anticipation before the joke lands.
+ - Escalate aggressively: tired arrival, wildly optimistic plan, increasingly bad decisions, then the absurd result.
+ - Treat harmless details like dramatic reveals, while staying faithful to what the memory actually says.
+ - Use recurring phrases sparingly, such as "so apparently", "this is where it gets worse", or "be serious".
+ - Let the host interrupt the story with observations, questions, disbelief, and quick reversals.
+ - Connect image details to voice-note context so the jokes feel discovered, not randomly pasted on.
+ - Keep the host clever, fast, and specific. Avoid generic words like crazy, epic, or iconic without a payoff.
+ - Example rhythm only, do not copy: "They said it was a quick trip. That was the first lie."
+ - End on a callback that feels like the host just watched the final clip and cannot believe the outcome.""",
         "trailer": """TRAILER PLAYBOOK:
 - Treat this real memory like the teaser for an unnecessarily dramatic blockbuster.
 - Use cinematic stakes for ordinary facts, but do not invent any event or outcome.
@@ -200,10 +208,59 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
 - Use spoken reactions and clean punchlines, not long written comedy paragraphs.
 - Example rhythm only, do not copy: "We brought ambition. Sleep was apparently optional."
 - End by making the imperfect outcome feel like the reason the memory is worth sharing.""",
+        "outsider_reaction": """OUTSIDER REACTION PLAYBOOK:
+- Narrate as a completely separate observer watching this group from the outside.
+- Do not use I, me, we, our, or us as if the narrator participated in the experience.
+- Open with the observer discovering the most unbelievable supported fact.
+- React in real time: notice a detail, form an opinion, then immediately escalate it with the next detail.
+- Make the group look hilariously committed, tired, confused, or overconfident only when the evidence supports it.
+- Use punchy outsider commentary such as "these people arrived with a plan" or "the plan did not survive the morning".
+- Contrast what normal people would do with what this group actually did, without inventing the normal version as fact.
+- Keep the observer's tone confident, incredulous, and entertained, like a live reaction cut over the footage.
+- Every few beats needs a reaction payoff, not just a description of what happened.
+- Example rhythm only, do not copy: "From the outside, this looked organised. Then the sleeping arrangement appeared."
+- End with the observer delivering a final verdict on the group and the strangely successful memory.""",
+        "roast_commentary": """ROAST COMMENTARY PLAYBOOK:
+- Write as an external comedian roasting the group, not as a member of the group.
+- Use third person for the people and situation. Do not say I did this, we did this, or my friends did this.
+- The narrator has permission to be blunt, dramatic, sarcastic, and very funny about the documented chaos.
+- Roast decisions, timing, exhaustion, overconfidence, and the gap between ambition and reality.
+- Do not roast protected traits, appearance, private pain, or anything not supported by the memory.
+- Begin with a sharp thesis about what kind of people would voluntarily create this story.
+- Give every factual beat a comic angle, then escalate to the next more ridiculous beat.
+- Use fake seriousness, mock analysis, courtroom language, sports commentary, or documentary authority for contrast.
+- Include at least one callback to the opening thesis and one line that sounds like a shareable quote.
+- Example rhythm only, do not copy: "The mission was innovation. The evidence suggests advanced sleep deprivation."
+- Finish with a verdict that is savage in wording but affectionate in spirit.""",
+        "village_elder": """VILLAGE ELDER PLAYBOOK:
+- Narrate as an intense, ancient village elder telling a hilarious cautionary tale to the younger generation.
+- This is an original character voice, not an imitation of any real person or comedian.
+- Use a grave, commanding tone for ordinary facts. The comedy comes from the mismatch between seriousness and reality.
+- Speak like the elder has witnessed many journeys and cannot believe this particular group survived its own planning.
+- Use dramatic wisdom and sarcastic observations: "In my time, we called this a bad idea" or "the elders had warned them".
+- Treat the overnight travel, ambitious hackathon, ridiculous exhaustion, and final outcome like epic folklore.
+- Build intensity with repetition, pauses, declarations, and short punchy sentences that TTS can perform dramatically.
+- Let the elder praise courage while clearly mocking the foolish choices that produced it.
+- Include a moral or proverb-like line near the end, but make the moral funny and specific to the real memory.
+- Example rhythm only, do not copy: "And so they entered the night without sleep. The night entered them instead."
+- End with a thunderous final verdict that sounds wise, sarcastic, and completely unforgettable.""",
     }
     if variant not in playbooks:
         raise ValueError(f"Unknown script variant: {variant}")
-    direction = playbooks[variant]
+    viral_core = """VIRAL ENERGY CORE:
+- Assume the audience is one swipe away from leaving. Earn attention in the first sentence.
+- Every few beats must contain a turn: a reveal, contrast, escalation, joke, emotional hit, or visual payoff.
+- Prefer specific absurdity over empty hype. The actual detail is funnier than the word hilarious.
+- Build a recognizable arc: hook, context, confidence, complication, chaos, payoff, callback.
+- Give the narrator a point of view. They should sound amused, shocked, affectionate, dramatic, or personally invested.
+- Write lines that can be clipped individually and still make sense out of context.
+- Use conversational connectors: okay, apparently, wait, then, somehow, and that is when.
+- Vary speed. Follow a rapid joke with a short quiet line so the next punchline hits harder.
+- Make the last beat quotable. It should reframe the whole memory in one funny or emotional sentence.
+- Do not sand down the personality into generic travel or event narration.
+- Examples are patterns only, never copy them: "The plan was simple. The evidence disagrees." / "We wanted a trophy. We got lore."
+"""
+    direction = viral_core + "\n" + playbooks[variant]
     return [
         {"role": "system", "content": (
             "You write high-retention, spoken video narration for a personal memory. Your output is sent directly to "
@@ -221,6 +278,23 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             "22 spoken words per sentence.\n"
             "- Use contractions, fragments, repetition, direct verbs, and natural pauses. A line should sound good "
             "when read aloud once, not look impressive in an essay.\n"
+            "- Sound like an actual funny person talking to friends. Use simple words, contractions, unfinished "
+            "thoughts, and occasional self-corrections like 'wait, no' or 'I mean'.\n"
+            "- Prefer natural phrases such as 'okay, so', 'look', 'honestly', 'bro', 'dude', 'somehow', 'no way', "
+            "'I cannot believe this', and 'that is actually wild' when they fit the narrator. Do not force slang.\n"
+            "- Do not sound like a press release, essay, documentary critic, or advertising copy. Do not use heavy "
+            "words such as 'unadulterated', 'breathtaking', 'strategic adventuring', 'sheer confidence', "
+            "'meticulously', 'picturesque', 'profound', or 'remarkable' unless they are part of a supplied quote.\n"
+            "- Replace abstract labels with spoken reactions. Say 'they looked finished' instead of 'they displayed "
+            "extreme fatigue'. Say 'the plan went out the window' instead of 'the strategy evolved'.\n"
+            "- Do not make every line sound perfectly polished or force a joke into every sentence. Human speech has "
+            "small reactions, obvious observations, awkward pauses, and lines that simply move the story forward.\n"
+            "- Add a small number of natural vocal beats across the script: umm, uh, hmm, wait, okay, oh no, uff, "
+            "ahh, or haha. Use them only when the narrator would genuinely hesitate, react, laugh, or sigh.\n"
+            "- Write laughs and sighs as speakable text such as 'haha', 'heh', 'uff...', or 'haa...', never as "
+            "[laughs], (laughs), [sigh], SSML, or stage directions.\n"
+            "- Do not put a filler in every line. One well-placed 'wait...' before a reveal is better than constant "
+            "robotic umm and ahh.\n"
             "- Use commas, full stops, ellipses, and occasional exclamation marks to signal pace and emotion. Do not "
             "use stage directions, bracketed notes, markdown, or em dashes.\n"
             "- Let emotion appear in the words. For example: 'You were exhausted. Still, you showed up.' is stronger "
@@ -230,6 +304,8 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             "or an unfinished setup.\n"
             "- Alternate setup and payoff. Do not stack vague hype. Every joke needs a fact-based target and a clean "
             "payoff.\n"
+            "- For roast and reaction variants, roast the situation like a friend in a group chat, not like a judge "
+            "writing a review. Use plain words, quick opinions, and a little disbelief.\n"
             "- Escalate: arrival, ambition, complications, funniest low point, then the emotional or comic close.\n"
             "- Be vivid and specific. Instead of 'it was fun', use the supported moment that made it funny or moving.\n\n"
             "TTS and JSON requirements:\n"
@@ -267,7 +343,7 @@ def generate_script(
         response = client.chat.completions(
             messages=messages,
             model=model,
-            temperature=0.45 if variant == "relive" else 0.75 if variant in {"viral", "reaction"} else 0.6,
+            temperature=0.45 if variant == "relive" else 0.8 if variant in {"viral", "reaction", "outsider_reaction", "roast_commentary", "village_elder"} else 0.6,
             max_tokens=max_tokens,
         )
         content = _response_text(response)
@@ -298,13 +374,15 @@ def generate_all(
     language_code: str,
     speaker: str,
     max_tokens: int,
- ) -> list[Path]:
+    village_elder_speaker: str = "varun",
+) -> list[Path]:
     memory = json.loads(Path(memory_json_path).read_text(encoding="utf-8"))
     narrative = Path(memory_md_path).read_text(encoding="utf-8")
     directory = Path(output_dir)
     paths: list[Path] = []
     for variant in SCRIPT_VARIANTS:
-        script = generate_script(memory, narrative, variant, model, language_code, speaker, max_tokens)
+        selected_speaker = village_elder_speaker if variant == "village_elder" else speaker
+        script = generate_script(memory, narrative, variant, model, language_code, selected_speaker, max_tokens)
         path = directory / f"{variant}_v1.json"
         _atomic_write(path, json.dumps(script, ensure_ascii=False, indent=2) + "\n")
         paths.append(path)
@@ -319,6 +397,7 @@ def main() -> None:
     parser.add_argument("--model", default="sarvam-105b")
     parser.add_argument("--language-code", default="en-IN")
     parser.add_argument("--speaker", default="shubh")
+    parser.add_argument("--village-elder-speaker", default="varun")
     parser.add_argument("--max-tokens", type=int, default=3500)
     parser.add_argument("--variants", nargs="+", choices=SCRIPT_VARIANTS, default=list(SCRIPT_VARIANTS))
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
@@ -328,7 +407,8 @@ def main() -> None:
     narrative = Path(args.memory_md).read_text(encoding="utf-8")
     paths: list[Path] = []
     for variant in args.variants:
-        script = generate_script(memory, narrative, variant, args.model, args.language_code, args.speaker, args.max_tokens)
+        selected_speaker = args.village_elder_speaker if variant == "village_elder" else args.speaker
+        script = generate_script(memory, narrative, variant, args.model, args.language_code, selected_speaker, args.max_tokens)
         path = Path(args.output_dir) / f"{variant}_v1.json"
         _atomic_write(path, json.dumps(script, ensure_ascii=False, indent=2) + "\n")
         paths.append(path)
