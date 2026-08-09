@@ -13,6 +13,7 @@ from typing import Any
 
 
 LOGGER = logging.getLogger("ai_memory.script_generation")
+SCRIPT_VARIANTS = ("relive", "share", "viral", "reaction")
 
 
 def _client():
@@ -108,11 +109,11 @@ def _normalise_script(
     output: list[dict[str, Any]] = []
     for index, raw_segment in enumerate(segments, start=1):
         segment = raw_segment if isinstance(raw_segment, dict) else {"narration_text": str(raw_segment)}
-        narration = str(segment.get("narration_text") or "")
+        narration = _remove_em_dashes(str(segment.get("narration_text") or ""))
         segment["segment_id"] = segment.get("segment_id") or f"seg_{index:02d}"
         segment["narration_text"] = narration
         segment["asset_ids"] = segment.get("asset_ids") if isinstance(segment.get("asset_ids"), list) else fallback_assets
-        segment["caption_text"] = str(segment.get("caption_text") or narration[:80])
+        segment["caption_text"] = _remove_em_dashes(str(segment.get("caption_text") or narration[:80]))
         segment["mood"] = str(segment.get("mood") or "neutral")
         output.append(segment)
     if not any(segment["narration_text"].strip() for segment in output):
@@ -121,23 +122,46 @@ def _normalise_script(
     return script
 
 
+def _remove_em_dashes(text: str) -> str:
+    """Keep TTS narration conversational without letting punctuation be read awkwardly."""
+    text = text.replace("—", ", ").replace("–", "-")
+    return re.sub(r"\s{2,}", " ", text).strip()
+
+
 def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict[str, str]]:
     if variant == "relive":
         direction = (
             "Make this personal and intimate, speaking directly to the listener in second person. "
             "Use phrasing like 'you arrived', 'you explored', and 'you kept building'. Do not narrate as we/our/us."
         )
-    else:
+    elif variant == "share":
         direction = (
             "Make this a concise social recap in first-person plural. Use phrasing like 'we arrived', "
             "'we explored', and 'we kept building'. Do not address the audience as you. Begin with a hook."
         )
+    elif variant == "viral":
+        direction = (
+            "Make this an aggressively catchy social-media recap in first-person plural. Open with a wild hook, "
+            "escalate the chaos, land a memorable punchline, and make every line clip-worthy. Use we/our/us. "
+            "Be playful and absurd, but never cruel or insulting toward real people."
+        )
+    elif variant == "reaction":
+        direction = (
+            "Make this a quick-witted, deadpan reaction-video host reacting to the experience. Be original, not an "
+            "imitation of any real creator. Use playful observations, escalating jokes, and punchlines based only on "
+            "the supplied facts. The host can say things like 'so apparently' and 'this is where it gets worse'."
+        )
+    else:
+        raise ValueError(f"Unknown script variant: {variant}")
     return [
         {"role": "system", "content": (
             "You write grounded video narration for a personal memory. "
             f"{direction} Use only facts in the supplied memory. Return JSON with a segments array; "
             "each segment should contain narration_text, asset_ids, caption_text, and mood. "
-            "Keep segments chronological and return JSON only."
+            "Write for speech, not an article: use short natural phrases, contractions, conversational rhythm, and "
+            "punctuation for pauses. Use emotion-bearing wording and choose one mood from excited, warm, nostalgic, "
+            "funny, somber, or neutral for every segment so TTS can perform it well. Do not use em dashes, stage "
+            "directions, brackets, or markup in narration_text. Keep segments chronological and return JSON only."
         )},
         {"role": "user", "content": (
             f"Variant: {variant}\n\nMemory JSON:\n{json.dumps(memory, ensure_ascii=False, indent=2)}"
@@ -167,7 +191,7 @@ def generate_script(
         response = client.chat.completions(
             messages=messages,
             model=model,
-            temperature=0.45 if variant == "relive" else 0.6,
+            temperature=0.45 if variant == "relive" else 0.75 if variant in {"viral", "reaction"} else 0.6,
             max_tokens=max_tokens,
         )
         content = _response_text(response)
@@ -197,21 +221,21 @@ def generate_all(
     language_code: str,
     speaker: str,
     max_tokens: int,
-) -> tuple[Path, Path]:
+ ) -> list[Path]:
     memory = json.loads(Path(memory_json_path).read_text(encoding="utf-8"))
     narrative = Path(memory_md_path).read_text(encoding="utf-8")
     directory = Path(output_dir)
     paths: list[Path] = []
-    for variant in ("relive", "share"):
+    for variant in SCRIPT_VARIANTS:
         script = generate_script(memory, narrative, variant, model, language_code, speaker, max_tokens)
         path = directory / f"{variant}_v1.json"
         _atomic_write(path, json.dumps(script, ensure_ascii=False, indent=2) + "\n")
         paths.append(path)
-    return paths[0], paths[1]
+    return paths
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate Relive and Share scripts with Sarvam LLM")
+    parser = argparse.ArgumentParser(description="Generate Relive, Share, Viral, and Reaction scripts with Sarvam LLM")
     parser.add_argument("--memory-json", default="memory.json")
     parser.add_argument("--memory-md", default="memory.md")
     parser.add_argument("--output-dir", default="scripts")
@@ -219,13 +243,19 @@ def main() -> None:
     parser.add_argument("--language-code", default="en-IN")
     parser.add_argument("--speaker", default="shubh")
     parser.add_argument("--max-tokens", type=int, default=3500)
+    parser.add_argument("--variants", nargs="+", choices=SCRIPT_VARIANTS, default=list(SCRIPT_VARIANTS))
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.log_level), format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    for path in generate_all(
-        args.memory_json, args.memory_md, args.output_dir, args.model,
-        args.language_code, args.speaker, args.max_tokens,
-    ):
+    memory = json.loads(Path(args.memory_json).read_text(encoding="utf-8"))
+    narrative = Path(args.memory_md).read_text(encoding="utf-8")
+    paths: list[Path] = []
+    for variant in args.variants:
+        script = generate_script(memory, narrative, variant, args.model, args.language_code, args.speaker, args.max_tokens)
+        path = Path(args.output_dir) / f"{variant}_v1.json"
+        _atomic_write(path, json.dumps(script, ensure_ascii=False, indent=2) + "\n")
+        paths.append(path)
+    for path in paths:
         print(path)
 
 
