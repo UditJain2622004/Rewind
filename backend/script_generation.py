@@ -164,16 +164,18 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
 - Example rhythm only, do not copy: "We came for glory. We left with a story and no sleep."
 - Be absurd and energetic, but never cruel, hateful, humiliating, or insulting toward real people.""",
         "reaction": """REACTION PLAYBOOK:
-- Write as an original, quick-witted reaction-video host. Do not imitate any real creator.
-- The host is amused by the situation, not mean to the people in it.
-- Open with an instant observation about the most ridiculous supported fact.
-- Use short reaction setups followed by a sharp payoff. Let pauses do part of the joke.
-- Escalate the commentary as the memory gets more sleep-deprived, ambitious, or chaotic.
-- Use recurring phrases sparingly, such as "so apparently" or "this is where it gets worse".
-- Describe what the host notices in the assets, then connect it to the voice-note context.
-- Keep the host's persona clever and conversational, not loud for the sake of it.
-- Example rhythm only, do not copy: "They said it was a quick trip. That was the first lie."
-- End on a callback that feels like a final reaction, not a formal conclusion.""",
+ - Write as an original, quick-witted reaction-video host. Do not imitate any real creator.
+ - Do not play it safe or give neutral documentary commentary. Have a strong comic opinion about every beat.
+ - Open with the most ridiculous supported fact, then immediately react as if the footage is evidence in a case.
+ - Use short reaction setups followed by sharp payoffs. Let pauses create anticipation before the joke lands.
+ - Escalate aggressively: tired arrival, wildly optimistic plan, increasingly bad decisions, then the absurd result.
+ - Treat harmless details like dramatic reveals, while staying faithful to what the memory actually says.
+ - Use recurring phrases sparingly, such as "so apparently", "this is where it gets worse", or "be serious".
+ - Let the host interrupt the story with observations, questions, disbelief, and quick reversals.
+ - Connect image details to voice-note context so the jokes feel discovered, not randomly pasted on.
+ - Keep the host clever, fast, and specific. Avoid generic words like crazy, epic, or iconic without a payoff.
+ - Example rhythm only, do not copy: "They said it was a quick trip. That was the first lie."
+ - End on a callback that feels like the host just watched the final clip and cannot believe the outcome.""",
         "trailer": """TRAILER PLAYBOOK:
 - Treat this real memory like the teaser for an unnecessarily dramatic blockbuster.
 - Use cinematic stakes for ordinary facts, but do not invent any event or outcome.
@@ -199,7 +201,20 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
     }
     if variant not in playbooks:
         raise ValueError(f"Unknown script variant: {variant}")
-    direction = playbooks[variant]
+    viral_core = """VIRAL ENERGY CORE:
+- Assume the audience is one swipe away from leaving. Earn attention in the first sentence.
+- Every few beats must contain a turn: a reveal, contrast, escalation, joke, emotional hit, or visual payoff.
+- Prefer specific absurdity over empty hype. The actual detail is funnier than the word hilarious.
+- Build a recognizable arc: hook, context, confidence, complication, chaos, payoff, callback.
+- Give the narrator a point of view. They should sound amused, shocked, affectionate, dramatic, or personally invested.
+- Write lines that can be clipped individually and still make sense out of context.
+- Use conversational connectors: okay, apparently, wait, then, somehow, and that is when.
+- Vary speed. Follow a rapid joke with a short quiet line so the next punchline hits harder.
+- Make the last beat quotable. It should reframe the whole memory in one funny or emotional sentence.
+- Do not sand down the personality into generic travel or event narration.
+- Examples are patterns only, never copy them: "The plan was simple. The evidence disagrees." / "We wanted a trophy. We got lore."
+"""
+    direction = viral_core + "\n" + playbooks[variant]
     return [
         {"role": "system", "content": (
             "You write high-retention, spoken video narration for a personal memory. Your output is sent directly to "
