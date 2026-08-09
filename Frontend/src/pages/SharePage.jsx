@@ -1,12 +1,14 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { memories } from '../data/mockData';
+import { useMemoryLoader } from '../hooks/useMemoryLoader';
 import StoryGenerator from '../components/share/StoryGenerator';
 
 export default function SharePage() {
   const { id } = useParams();
-  const memory = memories.find((m) => m.id === id) || memories[0];
+  const { memory } = useMemoryLoader(id);
+
+  if (!memory) return null;
 
   return (
     <main className="min-h-screen pt-20 sm:pt-24 pb-32 px-4 sm:px-6">

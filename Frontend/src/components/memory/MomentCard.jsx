@@ -69,6 +69,7 @@ export default function MomentCard({ moment, index = 0 }) {
             <VoiceNotePlayer
               duration={moment.voiceNote.duration}
               transcript={moment.voiceNote.transcript}
+              url={moment.voiceNote.url}
               compact
             />
           </div>
