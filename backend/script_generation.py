@@ -129,42 +129,77 @@ def _remove_em_dashes(text: str) -> str:
 
 
 def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict[str, str]]:
-    if variant == "relive":
-        direction = (
-            "Make this personal and intimate, speaking directly to the listener in second person. "
-            "Use phrasing like 'you arrived', 'you explored', and 'you kept building'. Do not narrate as we/our/us."
-        )
-    elif variant == "share":
-        direction = (
-            "Make this a concise social recap in first-person plural. Use phrasing like 'we arrived', "
-            "'we explored', and 'we kept building'. Do not address the audience as you. Begin with a hook."
-        )
-    elif variant == "viral":
-        direction = (
-            "Make this an aggressively catchy social-media recap in first-person plural. Open with a wild hook, "
-            "escalate the chaos, land a memorable punchline, and make every line clip-worthy. Use we/our/us. "
-            "Be playful and absurd, but never cruel or insulting toward real people."
-        )
-    elif variant == "reaction":
-        direction = (
-            "Make this a quick-witted, deadpan reaction-video host reacting to the experience. Be original, not an "
-            "imitation of any real creator. Use playful observations, escalating jokes, and punchlines based only on "
-            "the supplied facts. The host can say things like 'so apparently' and 'this is where it gets worse'."
-        )
-    elif variant == "trailer":
-        direction = (
-            "Make this a ridiculously dramatic movie-trailer teaser for an otherwise ordinary real-life memory. "
-            "Treat small setbacks as giant stakes, build tension, and end on a satisfying emotional or comic sting. "
-            "Use a cinematic narrator voice, but stay grounded in the supplied facts."
-        )
-    elif variant == "roast":
-        direction = (
-            "Make this a playful self-roast of the group and the experience. Punch up at the situation, sleep "
-            "deprivation, bad luck, and overconfidence, never at protected traits or personal vulnerabilities. "
-            "Make the people feel like insiders laughing together, not targets of ridicule."
-        )
-    else:
+    playbooks = {
+        "relive": """RELIVE PLAYBOOK:
+- Address one listener directly in second person. Say "you arrived", "you saw", and "you kept going".
+- Do not use we, our, or us as the narrator. Friends can be named when the memory supports it.
+- Open on one precise feeling or visual, then let the memory unfold gently.
+- Sound like a close friend retelling a night that mattered, not a brand campaign.
+- Let tiredness, excitement, nerves, relief, or warmth appear through specific actions.
+- Give every key moment room to land. Do not race through the story just to cover facts.
+- Use a quiet emotional turn near the end: effort mattered, even if the outcome was imperfect.
+- Keep jokes affectionate and small. The listener should feel seen, never mocked.
+- Example rhythm only, do not copy: "You were barely awake. Still, you showed up."
+- End with a soft line that makes the listener want to revisit the photos.""",
+        "share": """SHARE PLAYBOOK:
+- Speak as the group in first-person plural only: we, our, and us.
+- Start with a scroll-stopping first line that names the most surprising real contrast or setback.
+- Make the recap feel like friends telling the story in one energetic breath.
+- Build a clear mini-arc: why we came, what went wrong or got funny, what we remember most.
+- Keep the language simple enough for captions and fast enough for a short video.
+- Use one specific sensory or visual beat per major moment instead of generic excitement.
+- Let the final line feel proud, funny, or warmly reflective, based on the actual evidence.
+- Avoid explaining every detail. Leave a little curiosity so people want to watch the visuals.
+- Example rhythm only, do not copy: "We had a plan. The plan had other plans."
+- Never address the audience as you, and never turn the recap into an advertisement.""",
+        "viral": """VIRAL PLAYBOOK:
+- Use first-person plural. This is a bold, chaotic, highly shareable group recap.
+- Start with the wildest supported hook in the first seven spoken words.
+- Make the story escalate every few beats: optimism, complication, worse complication, absurd payoff.
+- Turn real details into clean comedic contrasts. Grand ambition versus low battery energy is a valid pattern.
+- Use punchy reversals such as "we thought X. Then Y happened", only when grounded in the memory.
+- Write captions that can stand alone as short meme text.
+- Keep jokes specific. Do not say "crazy" or "epic" without showing the real detail that earns it.
+- Use a confident final callback to the opening hook or the funniest real moment.
+- Example rhythm only, do not copy: "We came for glory. We left with a story and no sleep."
+- Be absurd and energetic, but never cruel, hateful, humiliating, or insulting toward real people.""",
+        "reaction": """REACTION PLAYBOOK:
+- Write as an original, quick-witted reaction-video host. Do not imitate any real creator.
+- The host is amused by the situation, not mean to the people in it.
+- Open with an instant observation about the most ridiculous supported fact.
+- Use short reaction setups followed by a sharp payoff. Let pauses do part of the joke.
+- Escalate the commentary as the memory gets more sleep-deprived, ambitious, or chaotic.
+- Use recurring phrases sparingly, such as "so apparently" or "this is where it gets worse".
+- Describe what the host notices in the assets, then connect it to the voice-note context.
+- Keep the host's persona clever and conversational, not loud for the sake of it.
+- Example rhythm only, do not copy: "They said it was a quick trip. That was the first lie."
+- End on a callback that feels like a final reaction, not a formal conclusion.""",
+        "trailer": """TRAILER PLAYBOOK:
+- Treat this real memory like the teaser for an unnecessarily dramatic blockbuster.
+- Use cinematic stakes for ordinary facts, but do not invent any event or outcome.
+- Open with a trailer-worthy premise and a deliberate pause.
+- Build through three acts: arrival, rising pressure, and the final payoff or goodbye.
+- Make small real setbacks sound enormous in a funny way, then undercut them with a grounded detail.
+- Alternate big declarations with quiet, vivid moments so the performance has contrast.
+- Use a title-card-worthy caption after the biggest beat, but keep it short.
+- Include one line that feels like a trailer tag: a promise, a question, or a warning.
+- Example rhythm only, do not copy: "One trip. No sleep. A very questionable plan."
+- End with a dramatic sting that is emotional or funny, based on what really happened.""",
+        "roast": """ROAST PLAYBOOK:
+- Write a playful insider self-roast. The group and the situation are in on the joke.
+- Punch up at overconfidence, exhaustion, terrible timing, minor bad luck, and chaotic planning.
+- Never attack protected traits, appearance, private vulnerabilities, or people who are not part of the memory.
+- Start by exposing the gap between the group's plan and what the evidence says actually happened.
+- Make each joke fact-based, then move on. Do not repeat the same joke in different words.
+- Pair every roast with affection or admiration so the memory still feels warm.
+- Let the funniest low point become a badge of honour by the ending.
+- Use spoken reactions and clean punchlines, not long written comedy paragraphs.
+- Example rhythm only, do not copy: "We brought ambition. Sleep was apparently optional."
+- End by making the imperfect outcome feel like the reason the memory is worth sharing.""",
+    }
+    if variant not in playbooks:
         raise ValueError(f"Unknown script variant: {variant}")
+    direction = playbooks[variant]
     return [
         {"role": "system", "content": (
             "You write high-retention, spoken video narration for a personal memory. Your output is sent directly to "
@@ -178,7 +213,6 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             "- Attach each segment to the asset IDs that visibly support it. Voice-note IDs can support narration but "
             "do not pretend a voice note is a photograph.\n\n"
             "Spoken-word rules:\n"
-            "- Return 10 to 14 segments. This is mandatory. A script with fewer than 10 segments is incomplete.\n"
             "- Treat each segment as one spoken line or beat. Write 1 to 2 short sentences per segment. Prefer 7 to "
             "22 spoken words per sentence.\n"
             "- Use contractions, fragments, repetition, direct verbs, and natural pauses. A line should sound good "
@@ -196,7 +230,6 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             "- Be vivid and specific. Instead of 'it was fun', use the supported moment that made it funny or moving.\n\n"
             "TTS and JSON requirements:\n"
             "- Return JSON only, as an object with a segments array.\n"
-            "- segments must contain at least 10 items and no more than 14 items.\n"
             "- Each segment needs narration_text, asset_ids, caption_text, and mood.\n"
             "- mood must be one of: excited, warm, nostalgic, funny, somber, neutral. Match it to the spoken line.\n"
             "- caption_text must be short, readable on screen, and not merely repeat the narration.\n"
@@ -226,7 +259,7 @@ def generate_script(
             # narrative causes an empty response. Memory JSON still carries
             # the structured facts and asset references.
             messages = _messages(variant, memory, "")
-            messages[0]["content"] += " Return 10-14 short segments and do not omit narration_text."
+            messages[0]["content"] += " Return a complete script and do not omit narration_text."
         response = client.chat.completions(
             messages=messages,
             model=model,
@@ -240,15 +273,9 @@ def generate_script(
         )
         if content.strip():
             script = _normalise_script(content, memory, variant, language_code, speaker)
-            if len(script["segments"]) >= 10:
-                return script
-            LOGGER.warning(
-                "short Sarvam script: variant=%s attempt=%d segments=%d; retrying",
-                variant, attempt, len(script["segments"]),
-            )
-            continue
+            return script
         LOGGER.warning("empty Sarvam response: variant=%s attempt=%d", variant, attempt)
-    raise RuntimeError(f"Sarvam returned no usable {variant} script with at least 10 segments after 2 attempts")
+    raise RuntimeError(f"Sarvam returned no usable {variant} script after 2 attempts")
 
 
 def _atomic_write(path: Path, content: str) -> None:
