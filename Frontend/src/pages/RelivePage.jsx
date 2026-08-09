@@ -1,14 +1,14 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { memories } from '../data/mockData';
+import { useMemoryLoader } from '../hooks/useMemoryLoader';
 import StoryPlayer from '../components/relive/StoryPlayer';
 
 export default function RelivePage() {
   const { id } = useParams();
-  const memory = memories.find((m) => m.id === id) || memories[0];
+  const { memory } = useMemoryLoader(id);
 
-  if (!memory.moments || memory.moments.length === 0) {
+  if (!memory || !memory.moments || memory.moments.length === 0) {
     return (
       <div className="fixed inset-0 bg-memory-base flex items-center justify-center">
         <div className="text-center">

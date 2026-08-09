@@ -1,6 +1,6 @@
 import datetime
 import logging
-from services.mongodb_service import save_or_update_draft, get_active_draft, update_memory_status
+from services.mongodb_service import save_or_update_draft, get_active_draft, update_memory_status, get_all_memories_from_db
 from services.cloudinary_service import upload_file_to_cloudinary
 from models import AssetRecord
 
@@ -80,6 +80,12 @@ def handle_get_draft(memory_id: str = None) -> dict:
     Fetches pending draft from MongoDB.
     """
     return get_active_draft(memory_id)
+
+def handle_get_all_memories() -> list:
+    """
+    Fetches all memories from MongoDB collection.
+    """
+    return get_all_memories_from_db()
 
 def handle_trigger_generation(memory_id: str) -> dict:
     """

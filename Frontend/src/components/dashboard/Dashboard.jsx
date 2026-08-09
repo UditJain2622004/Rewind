@@ -5,6 +5,8 @@ import { Plus, Search } from 'lucide-react';
 import FeaturedMemory from './FeaturedMemory';
 import MemoryGrid from './MemoryGrid';
 import { memories, getAllMemories } from '../../data/mockData';
+import { getAllMemoriesFromMongoDB } from '../../services/api';
+import { formatMemoryData } from '../../hooks/useMemoryLoader';
 
 const categories = [
   { id: 'all', label: 'All' },
@@ -17,14 +19,32 @@ const categories = [
 export default function Dashboard() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [allMemoriesList, setAllMemoriesList] = useState([]);
+  const [allMemoriesList, setAllMemoriesList] = useState(() => getAllMemories());
 
   useEffect(() => {
-    setAllMemoriesList(getAllMemories());
+    let isMounted = true;
+
+    // Fetch live memories from MongoDB database in background
+    getAllMemoriesFromMongoDB().then((dbMemories) => {
+      if (!isMounted) return;
+      if (dbMemories && Array.isArray(dbMemories) && dbMemories.length > 0) {
+        const formattedList = dbMemories.map((m) => formatMemoryData(m.id || m._id || m.memory_id, m));
+        const existingIds = new Set(formattedList.map(m => m.id));
+        const local = getAllMemories();
+        const extraLocal = (local || []).filter(m => !existingIds.has(m.id));
+        setAllMemoriesList([...formattedList, ...extraLocal]);
+      }
+    }).catch((err) => {
+      console.warn("MongoDB memories background sync error:", err);
+    });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const featured = memories[0];
   const otherMemories = allMemoriesList.length > 0 ? allMemoriesList : memories;
+  const featured = otherMemories.length > 0 ? otherMemories[0] : null;
 
   // Filter memories by category & search query
   const filteredMemories = otherMemories.filter((mem) => {
@@ -55,7 +75,7 @@ export default function Dashboard() {
             Welcome back, <span className="italic font-serif font-normal text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-100 to-purple-200">Ankush.</span>
           </h1>
           <p className="text-white/50 text-sm mt-0.5">
-            {memories.length} stories in your vault
+            {otherMemories.length} stories in your vault
           </p>
         </div>
 
@@ -74,7 +94,7 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <FeaturedMemory memory={featured} />
+        <FeaturedMemory memory={featured} items={otherMemories} />
       </motion.div>
 
       {/* Your Memories Section with Live Filters & Search */}

@@ -88,6 +88,24 @@ export async function getDraftFromMongoDB(memoryId = null) {
 }
 
 /**
+ * Fetches all memories from MongoDB Atlas database.
+ */
+export async function getAllMemoriesFromMongoDB() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/memories`);
+    if (!response.ok) throw new Error('Failed to fetch memories from MongoDB');
+
+    const data = await response.json();
+    if (data.memories && Array.isArray(data.memories)) {
+      return data.memories;
+    }
+  } catch (error) {
+    console.warn('Backend MongoDB memories fetch warning/fallback:', error.message);
+  }
+  return null;
+}
+
+/**
  * Triggers memory vault generation in MongoDB.
  */
 export async function triggerMemoryGeneration(memoryId) {
