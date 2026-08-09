@@ -15,6 +15,8 @@ from typing import Any
 LOGGER = logging.getLogger("ai_memory.script_generation")
 SCRIPT_VARIANTS = (
     "roast", "roast_commentary", "village_elder",
+    "couple_bickering", "this_or_that", "expectation_vs_reality",
+    "grwm_storytime", "hot_take_debate", "rate_out_of_ten",
 )
 
 
@@ -174,6 +176,55 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
 - Include a moral or proverb-like line near the end, but make the moral funny and specific to the real memory.
 - Example rhythm only, do not copy: "And so they entered the night without sleep. The night entered them instead."
 - End with a thunderous final verdict that sounds wise, sarcastic, and completely unforgettable.""",
+        "couple_bickering": """COUPLE BICKERING PLAYBOOK:
+- Narrate as a playful back-and-forth between two voices in a relationship, gently bickering about the memory.
+- Use the viral "gf vs bf" banter format — one voice teasing, the other defending, both clearly affectionate underneath.
+- Base every jab on real details from the memory (who planned it, who overslept, who forgot something), never invented flaws.
+- Keep the tone like an inside joke a couple would actually post, not a real argument — no contempt, no genuine criticism.
+- Let both voices get a turn to "win" a point so it feels balanced, not one-sided.
+- Never touch appearance, insecurities, or anything not clearly part of the shared memory.
+- Example rhythm only, do not copy: "'I said left.' 'You said it AFTER we turned right.' 'Details.'"
+- End with a line that resolves the bicker into a warm, teasing truce — proof they're a team despite the chaos.""",
+        "this_or_that": """THIS OR THAT PLAYBOOK:
+- Narrate using the viral "this or that" rapid-fire format, framing real moments from the memory as binary choices.
+- Structure each beat as a quick two-option setup followed by which one "won," based on what actually happened.
+- Use snappy, fast-paced delivery — short phrases, minimal explanation, quick cuts between choices.
+- Ground every "this or that" in a real detail from the memory (sleep or snacks, plan A or plan B, hype or panic).
+- Let the choices build a mini-story of the memory when strung together, not just a random list.
+- Example rhythm only, do not copy: "Sleep or snacks? Snacks. Plan or chaos? Also chaos, somehow both won."
+- End with the ultimate "this or that" — the ending itself framed as the final, funniest choice they made.""",
+        "expectation_vs_reality": """EXPECTATION VS REALITY PLAYBOOK:
+- Narrate using the viral "expectation vs reality" split format, contrasting the plan with what actually happened.
+- Open each beat with the confident "expectation" version, then cut to the messier "reality" version.
+- Use a clean, punchy rhythm — short expectation line, short reality line, quick contrast, move on.
+- Keep the reality beats grounded in true details from the memory, exaggerated only for comic timing, not fabricated.
+- Maintain affection throughout — reality should feel endearing and funny, not disappointing.
+- Example rhythm only, do not copy: "Expectation: arrive early, well rested, fully prepared. Reality: arrive, period."
+- End by declaring reality the better story anyway, turning the gap into the punchline.""",
+        "grwm_storytime": """GET READY WITH ME STORYTIME PLAYBOOK:
+- Narrate as a casual "get ready with me" storytime — talking through the memory the way someone talks while doing their routine.
+- Use the genre's meandering, conversational tone: tangents, asides, "okay so basically," "anyway—" transitions.
+- Let the story unfold gradually with small real details revealed as if remembered mid-sentence.
+- Include a "wait, it gets worse" or "wait, it gets better" pivot partway through, genre staple for retention.
+- Keep it intimate and casual, like a close friend narrating, not performative or exaggerated.
+- Example rhythm only, do not copy: "So okay — we had this whole plan, right? Anyway, none of it happened, but stay with me."
+- End with a casual, trailing-off button line, like the story just naturally wraps up.""",
+        "hot_take_debate": """HOT TAKE / UNPOPULAR OPINION PLAYBOOK:
+- Narrate as someone delivering a confident "unpopular opinion" or "hot take" about the group's memory.
+- Open with a bold, deadpan claim that reframes an ordinary moment as a controversial stance.
+- Defend the take with mock-serious reasoning pulled from real details in the memory.
+- Use the genre's confident, slightly combative delivery — daring the listener to disagree.
+- Keep the "controversy" totally harmless and specific to the group's own choices, nothing genuinely divisive.
+- Example rhythm only, do not copy: "Hot take: the trip wasn't ruined by no sleep. It was made by no sleep. Fight me."
+- End by doubling down on the take as the final, unshakeable verdict.""",
+        "rate_out_of_ten": """RATE OUT OF TEN PLAYBOOK:
+- Narrate using the viral "rating things out of 10" format, scoring individual moments from the memory.
+- Give each real beat a quick, confident numeric rating with a one-line justification.
+- Use rapid pacing — score, reason, next score, building comedic momentum through the list.
+- Let ratings be intentionally inconsistent or biased in funny ways (e.g. rating chaos a 10/10 despite it "going wrong").
+- Base every score on something that actually happened, not invented details.
+- Example rhythm only, do not copy: "The plan: 3 out of 10. The commitment to the plan anyway: 11 out of 10."
+- End with an overall final score for the whole memory that ties every beat together.""",
     }
     if variant not in playbooks:
         raise ValueError(f"Unknown script variant: {variant}")
