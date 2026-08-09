@@ -1,13 +1,122 @@
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { memories } from '../data/mockData';
 import MemoryModeTabs from '../components/memory/MemoryModeTabs';
 import MemoryTimeline from '../components/memory/MemoryTimeline';
 import ContributorPanel from '../components/shared/ContributorPanel';
+import { assembleRelive, getReliveData } from '../services/api';
 
 export default function MemoryViewPage() {
   const { id } = useParams();
-  const memory = memories.find((m) => m.id === id) || memories[0];
+  
+  // Set up mock fallback memory
+  const mockMemory = memories.find((m) => m.id === id) || memories[0];
+
+  const [memory, setMemory] = useState(mockMemory);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationSuccess, setGenerationSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true);
+        const data = await getReliveData();
+        if (data && data.script) {
+          // Compile real data from script
+          const script = data.script;
+          
+          // Asset map
+          const assetMap = {};
+          if (data.assets_manifest) {
+            data.assets_manifest.forEach(asset => {
+              assetMap[asset.asset_id] = asset.file_url || asset.url;
+            });
+          }
+
+          // Segments to moments
+          const moments = (script.segments || []).map((seg, idx) => {
+            const photos = (seg.asset_ids || []).map(aid => assetMap[aid]).filter(Boolean);
+            
+            // Extract location info if details exist, otherwise default to IIM Bangalore
+            let location = "IIM Bangalore";
+            const matchingAssetId = seg.asset_ids?.[0];
+            if (matchingAssetId && data.assets_manifest) {
+              const matchedAsset = data.assets_manifest.find(a => a.asset_id === matchingAssetId);
+              if (matchedAsset && matchedAsset.contributor_name) {
+                location = `By ${matchedAsset.contributor_name}`;
+              }
+            }
+
+            return {
+              id: seg.segment_id,
+              time: `Moment ${idx + 1}`,
+              location: location,
+              emoji: seg.mood === "excited" ? "⚡" : seg.mood === "funny" ? "😂" : seg.mood === "somber" ? "🥺" : "🌟",
+              description: seg.caption_text || seg.narration_text,
+              aiNarration: seg.narration_text,
+              photos: photos.length > 0 ? photos : [mockMemory.cover]
+            };
+          });
+
+          const isGenerated = data.tts_output && data.tts_output.audio_segments && data.tts_output.audio_segments.length > 0;
+
+          const realMemory = {
+            id: id || "iimb-hackathon",
+            title: "IIM Bangalore",
+            subtitle: "Hackathon 2026",
+            fullTitle: "IIM Bangalore — Hackathon 2026",
+            cover: moments[0]?.photos?.[0] || mockMemory.cover,
+            description: `${moments.length} moments saved in memory vault.`,
+            contributors: (script.contributors || []).map((name, i) => ({
+              id: name.toLowerCase(),
+              name: name.charAt(0).toUpperCase() + name.slice(1),
+              avatar: i % 2 === 0 ? "👨🏽" : "👩🏽",
+              color: i % 2 === 0 ? "#38bdf8" : "#f472b6"
+            })),
+            moments: moments,
+            perspectives: mockMemory.perspectives
+          };
+
+          setMemory(realMemory);
+          if (isGenerated) {
+            setGenerationSuccess(true);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load relive data from backend, falling back to mock data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [id, mockMemory.cover, mockMemory.perspectives]);
+
+  const handleGenerateStory = async () => {
+    setIsGenerating(true);
+    try {
+      await assembleRelive();
+      setGenerationSuccess(true);
+      alert("AI Story synthesized successfully! You can now Relive your trip.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to synthesize memory story. Please check your credentials or backend server.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-memory-base flex items-center justify-center">
+        <div className="text-center">
+          <span className="animate-spin inline-block w-8 h-8 border-4 border-t-transparent border-violet-500 rounded-full mb-4"></span>
+          <p className="text-memory-ivory-muted">Loading Memory Vault...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen">
@@ -43,10 +152,22 @@ export default function MemoryViewPage() {
             className="shrink-0"
           >
             <button
-              onClick={() => alert("AI Story Engine started! Synthesizing narration and photos...")}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-violet-600 hover:from-amber-300 hover:to-violet-500 text-white font-bold text-sm shadow-xl shadow-amber-500/25 transition-all flex items-center gap-2"
+              onClick={handleGenerateStory}
+              disabled={isGenerating}
+              className={`px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-violet-600 hover:from-amber-300 hover:to-violet-500 text-white font-bold text-sm shadow-xl transition-all flex items-center gap-2 ${
+                isGenerating ? 'opacity-80 cursor-not-allowed shadow-none' : 'shadow-amber-500/25'
+              }`}
             >
-              <span>✨ Generate AI Story</span>
+              {isGenerating ? (
+                <>
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-t-transparent border-white rounded-full"></span>
+                  <span>Synthesizing...</span>
+                </>
+              ) : generationSuccess ? (
+                <span>✨ Story Ready!</span>
+              ) : (
+                <span>✨ Generate AI Story</span>
+              )}
             </button>
           </motion.div>
         </div>

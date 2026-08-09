@@ -16,6 +16,18 @@ async def assemble_relive():
     logger.info("Received request to assemble relive media")
     try:
         result = await video_service.assemble_relive()
+        # Save or update assembled video story in MongoDB memory vault
+        try:
+            from services.memory_service import handle_save_draft
+            handle_save_draft({
+                "id": "iimb-hackathon-2026",
+                "title": "IIM Bangalore — Hackathon 2026",
+                "name": "IIM Bangalore",
+                "status": "ready",
+                "items": result.get("audio_segments", [])
+            })
+        except Exception as err:
+            logger.warning(f"Could not sync assembled story to MongoDB: {err}")
         return result
     except FileNotFoundError as e:
         logger.error(f"Script files missing: {e}")

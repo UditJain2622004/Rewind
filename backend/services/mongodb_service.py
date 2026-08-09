@@ -83,3 +83,19 @@ def update_memory_status(memory_id: str, new_status: str) -> bool:
         except Exception as e:
             logger.error(f"Error updating status in MongoDB: {e}")
     return False
+
+def get_all_memories_from_db() -> list:
+    database = get_db()
+    memories_list = []
+    if database is not None:
+        try:
+            collection = database["memories"]
+            cursor = collection.find({}).sort("updated_at", -1)
+            for doc in cursor:
+                if "_id" in doc:
+                    doc["id"] = str(doc["_id"])
+                memories_list.append(doc)
+        except Exception as e:
+            logger.error(f"Error fetching all memories from MongoDB: {e}")
+    return memories_list
+

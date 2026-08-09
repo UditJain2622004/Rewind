@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, RotateCcw } from 'lucide-react';
 import ExplorePrompt from './ExplorePrompt';
 import ExploreResult from './ExploreResult';
+import { exploreMemory } from '../../services/api';
 
 export default function MemoryExplorer({ conversations, suggestedQuestions, memoryId, memoryTitle }) {
   const [results, setResults] = useState([]);
@@ -18,17 +19,30 @@ export default function MemoryExplorer({ conversations, suggestedQuestions, memo
     scrollToBottom();
   }, [results, isTyping]);
 
-  const askQuestion = (question) => {
-    const match = conversations.find((c) =>
-      c.question.toLowerCase() === question.toLowerCase()
-    ) || conversations[Math.floor(Math.random() * conversations.length)];
-
+  const askQuestion = async (question) => {
     setIsTyping(true);
-
-    setTimeout(() => {
+    try {
+      const data = await exploreMemory(question);
+      if (data && data.answer) {
+        const newResult = {
+          question: question,
+          answer: data.answer,
+          referencedMoments: data.referencedMoments || [],
+          referencedPeople: data.referencedPeople || []
+        };
+        setResults((prev) => [...prev, newResult]);
+      } else {
+        throw new Error("Invalid response format from explore API");
+      }
+    } catch (error) {
+      console.warn("Failed to explore memory via backend API, falling back to mock:", error);
+      const match = conversations.find((c) =>
+        c.question.toLowerCase() === question.toLowerCase()
+      ) || conversations[Math.floor(Math.random() * conversations.length)];
       setResults((prev) => [...prev, { ...match, question }]);
+    } finally {
       setIsTyping(false);
-    }, 800);
+    }
   };
 
   const handleSubmit = (e) => {

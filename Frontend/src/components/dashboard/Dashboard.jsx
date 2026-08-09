@@ -5,6 +5,7 @@ import { Plus, Search } from 'lucide-react';
 import FeaturedMemory from './FeaturedMemory';
 import MemoryGrid from './MemoryGrid';
 import { memories, getAllMemories } from '../../data/mockData';
+import { getAllMemoriesFromAPI } from '../../services/api';
 
 const categories = [
   { id: 'all', label: 'All' },
@@ -20,7 +21,20 @@ export default function Dashboard() {
   const [allMemoriesList, setAllMemoriesList] = useState([]);
 
   useEffect(() => {
-    setAllMemoriesList(getAllMemories());
+    async function loadMemories() {
+      try {
+        const mems = await getAllMemoriesFromAPI();
+        if (mems && mems.length > 0) {
+          setAllMemoriesList(mems);
+        } else {
+          setAllMemoriesList(getAllMemories());
+        }
+      } catch (err) {
+        console.warn('Could not fetch memories from API:', err);
+        setAllMemoriesList(getAllMemories());
+      }
+    }
+    loadMemories();
   }, []);
 
   const featured = memories[0];
