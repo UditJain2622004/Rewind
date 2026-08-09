@@ -23,7 +23,7 @@ backend_dir = Path(__file__).resolve().parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-from script_generation import generate_script, SCRIPT_VARIANTS, _make_llm_caller if hasattr(sys.modules.get('script_generation'), '_make_llm_caller') else None
+from script_generation import generate_script, SCRIPT_VARIANTS
 from generate_audio_test import generate_audio_from_script, load_env_api_key
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -91,6 +91,10 @@ def main() -> None:
     print(f" Output Dir:   {output_dir.resolve()}")
     print("==================================================\n")
 
+    api_key = load_env_api_key()
+    if api_key:
+        os.environ["SARVAM_API_KEY"] = api_key
+
     # Step 1: Generate Script Variant
     print(f"Step 1/2: Generating '{args.variant}' script using Sarvam LLM ({args.model})...")
     memory_data = json.loads(mem_json_path.read_text(encoding="utf-8"))
@@ -112,7 +116,7 @@ def main() -> None:
     script_file_path = output_dir / script_filename
     script_file_path.write_text(json.dumps(script_result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    print(f" ✓ Script generated successfully -> {script_file_path.resolve()}")
+    print(f" [OK] Script generated successfully -> {script_file_path.resolve()}")
     print(f"   Total Segments: {len(script_result.get('segments', []))}\n")
 
     # Step 2: Generate Audio & Join
