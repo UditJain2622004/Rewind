@@ -49,14 +49,17 @@ class VideoService:
 
     def _resolve_script_path(self, memory_id: str) -> str:
         """
-        Prefer  static/experiences/<memory_id>/scripts/relive_v1.json
-        Fallback static/experiences/<memory_id>/relive_v1.json
-        Fallback root script.json  (legacy IIM-B demo)
+        Prefer static/experiences/<memory_id>/scripts/{roast,roast_commentary,village_elder,relive}_v1.json
+        Fallback root script.json (legacy demo)
         """
         if memory_id:
             exp_dir = self._exp_dir(memory_id)
             candidates = [
+                os.path.join(exp_dir, "scripts", "roast_v1.json"),
+                os.path.join(exp_dir, "scripts", "roast_commentary_v1.json"),
+                os.path.join(exp_dir, "scripts", "village_elder_v1.json"),
                 os.path.join(exp_dir, "scripts", "relive_v1.json"),
+                os.path.join(exp_dir, "roast_v1.json"),
                 os.path.join(exp_dir, "relive_v1.json"),
             ]
             for c in candidates:

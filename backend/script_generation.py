@@ -14,8 +14,7 @@ from typing import Any
 
 LOGGER = logging.getLogger("ai_memory.script_generation")
 SCRIPT_VARIANTS = (
-    "relive", "share", "viral", "reaction", "trailer", "roast",
-    "outsider_reaction", "roast_commentary", "village_elder",
+    "roast", "roast_commentary", "village_elder",
 )
 
 
@@ -140,63 +139,6 @@ def _remove_em_dashes(text: str) -> str:
 
 def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict[str, str]]:
     playbooks = {
-        "relive": """RELIVE PLAYBOOK:
-- Address one listener directly in second person. Say "you arrived", "you saw", and "you kept going".
-- Do not use we, our, or us as the narrator. Friends can be named when the memory supports it.
-- Open on one precise feeling or visual, then let the memory unfold gently.
-- Sound like a close friend retelling a night that mattered, not a brand campaign.
-- Let tiredness, excitement, nerves, relief, or warmth appear through specific actions.
-- Give every key moment room to land. Do not race through the story just to cover facts.
-- Use a quiet emotional turn near the end: effort mattered, even if the outcome was imperfect.
-- Keep jokes affectionate and small. The listener should feel seen, never mocked.
-- Example rhythm only, do not copy: "You were barely awake. Still, you showed up."
-- End with a soft line that makes the listener want to revisit the photos.""",
-        "share": """SHARE PLAYBOOK:
-- Speak as the group in first-person plural only: we, our, and us.
-- Start with a scroll-stopping first line that names the most surprising real contrast or setback.
-- Make the recap feel like friends telling the story in one energetic breath.
-- Build a clear mini-arc: why we came, what went wrong or got funny, what we remember most.
-- Keep the language simple enough for captions and fast enough for a short video.
-- Use one specific sensory or visual beat per major moment instead of generic excitement.
-- Let the final line feel proud, funny, or warmly reflective, based on the actual evidence.
-- Avoid explaining every detail. Leave a little curiosity so people want to watch the visuals.
-- Example rhythm only, do not copy: "We had a plan. The plan had other plans."
-- Never address the audience as you, and never turn the recap into an advertisement.""",
-        "viral": """VIRAL PLAYBOOK:
-- Use first-person plural. This is a bold, chaotic, highly shareable group recap.
-- Start with the wildest supported hook in the first seven spoken words.
-- Make the story escalate every few beats: optimism, complication, worse complication, absurd payoff.
-- Turn real details into clean comedic contrasts. Grand ambition versus low battery energy is a valid pattern.
-- Use punchy reversals such as "we thought X. Then Y happened", only when grounded in the memory.
-- Write captions that can stand alone as short meme text.
-- Keep jokes specific. Do not say "crazy" or "epic" without showing the real detail that earns it.
-- Use a confident final callback to the opening hook or the funniest real moment.
-- Example rhythm only, do not copy: "We came for glory. We left with a story and no sleep."
-- Be absurd and energetic, but never cruel, hateful, humiliating, or insulting toward real people.""",
-        "reaction": """REACTION PLAYBOOK:
- - Write as an original, quick-witted reaction-video host. Do not imitate any real creator.
- - Do not play it safe or give neutral documentary commentary. Have a strong comic opinion about every beat.
- - Open with the most ridiculous supported fact, then immediately react as if the footage is evidence in a case.
- - Use short reaction setups followed by sharp payoffs. Let pauses create anticipation before the joke lands.
- - Escalate aggressively: tired arrival, wildly optimistic plan, increasingly bad decisions, then the absurd result.
- - Treat harmless details like dramatic reveals, while staying faithful to what the memory actually says.
- - Use recurring phrases sparingly, such as "so apparently", "this is where it gets worse", or "be serious".
- - Let the host interrupt the story with observations, questions, disbelief, and quick reversals.
- - Connect image details to voice-note context so the jokes feel discovered, not randomly pasted on.
- - Keep the host clever, fast, and specific. Avoid generic words like crazy, epic, or iconic without a payoff.
- - Example rhythm only, do not copy: "They said it was a quick trip. That was the first lie."
- - End on a callback that feels like the host just watched the final clip and cannot believe the outcome.""",
-        "trailer": """TRAILER PLAYBOOK:
-- Treat this real memory like the teaser for an unnecessarily dramatic blockbuster.
-- Use cinematic stakes for ordinary facts, but do not invent any event or outcome.
-- Open with a trailer-worthy premise and a deliberate pause.
-- Build through three acts: arrival, rising pressure, and the final payoff or goodbye.
-- Make small real setbacks sound enormous in a funny way, then undercut them with a grounded detail.
-- Alternate big declarations with quiet, vivid moments so the performance has contrast.
-- Use a title-card-worthy caption after the biggest beat, but keep it short.
-- Include one line that feels like a trailer tag: a promise, a question, or a warning.
-- Example rhythm only, do not copy: "One trip. No sleep. A very questionable plan."
-- End with a dramatic sting that is emotional or funny, based on what really happened.""",
         "roast": """ROAST PLAYBOOK:
 - Write a playful insider self-roast. The group and the situation are in on the joke.
 - Punch up at overconfidence, exhaustion, terrible timing, minor bad luck, and chaotic planning.
@@ -208,18 +150,6 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
 - Use spoken reactions and clean punchlines, not long written comedy paragraphs.
 - Example rhythm only, do not copy: "We brought ambition. Sleep was apparently optional."
 - End by making the imperfect outcome feel like the reason the memory is worth sharing.""",
-        "outsider_reaction": """OUTSIDER REACTION PLAYBOOK:
-- Narrate as a completely separate observer watching this group from the outside.
-- Do not use I, me, we, our, or us as if the narrator participated in the experience.
-- Open with the observer discovering the most unbelievable supported fact.
-- React in real time: notice a detail, form an opinion, then immediately escalate it with the next detail.
-- Make the group look hilariously committed, tired, confused, or overconfident only when the evidence supports it.
-- Use punchy outsider commentary such as "these people arrived with a plan" or "the plan did not survive the morning".
-- Contrast what normal people would do with what this group actually did, without inventing the normal version as fact.
-- Keep the observer's tone confident, incredulous, and entertained, like a live reaction cut over the footage.
-- Every few beats needs a reaction payoff, not just a description of what happened.
-- Example rhythm only, do not copy: "From the outside, this looked organised. Then the sleeping arrangement appeared."
-- End with the observer delivering a final verdict on the group and the strangely successful memory.""",
         "roast_commentary": """ROAST COMMENTARY PLAYBOOK:
 - Write as an external comedian roasting the group, not as a member of the group.
 - Use third person for the people and situation. Do not say I did this, we did this, or my friends did this.
@@ -343,7 +273,7 @@ def generate_script(
         response = client.chat.completions(
             messages=messages,
             model=model,
-            temperature=0.45 if variant == "relive" else 0.8 if variant in {"viral", "reaction", "outsider_reaction", "roast_commentary", "village_elder"} else 0.6,
+            temperature=0.8 if variant in {"roast_commentary", "village_elder"} else 0.6,
             max_tokens=max_tokens,
         )
         content = _response_text(response)
