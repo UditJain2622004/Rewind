@@ -5,7 +5,8 @@ import { Plus, Search } from 'lucide-react';
 import FeaturedMemory from './FeaturedMemory';
 import MemoryGrid from './MemoryGrid';
 import { memories, getAllMemories } from '../../data/mockData';
-import { getAllMemoriesFromDB } from '../../services/api';
+import { getAllMemoriesFromAPI, getAllMemoriesFromDB } from '../../services/api';
+import { formatMemoryData } from '../../hooks/useMemoryLoader';
 
 const categories = [
   { id: 'all', label: 'All' },
@@ -18,8 +19,10 @@ const categories = [
 /** Normalize a raw MongoDB memory document into the shape the UI expects. */
 function normalizeDbMemory(doc) {
   const id = doc.memory_id || doc._id || doc.id || `db_${Math.random().toString(36).slice(2)}`;
+  if (doc.fullTitle || doc.cover) {
+    return formatMemoryData(id, doc);
+  }
   const title = doc.title || doc.name || 'Untitled Memory';
-  // Pick the first item image as cover, or fallback
   const firstImage = (doc.items || []).find((i) => i.type === 'image' || i.type === 'photo');
   const cover = firstImage
     ? firstImage.file_url || firstImage.url || firstImage.preview
@@ -43,26 +46,36 @@ function normalizeDbMemory(doc) {
 export default function Dashboard() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [allMemoriesList, setAllMemoriesList] = useState([]);
+  const [allMemoriesList, setAllMemoriesList] = useState(() => getAllMemories());
 
   useEffect(() => {
-    const localMemories = getAllMemories();
-    setAllMemoriesList(localMemories);
-
-    // Also fetch from MongoDB and merge (deduplicate by id)
-    getAllMemoriesFromDB().then((dbDocs) => {
-      if (!dbDocs.length) return;
-      const normalized = dbDocs.map(normalizeDbMemory);
-      const existingIds = new Set(localMemories.map((m) => m.id));
-      const fresh = normalized.filter((m) => !existingIds.has(m.id));
-      if (fresh.length > 0) {
-        setAllMemoriesList((prev) => [...fresh, ...prev]);
+    let isMounted = true;
+    async function loadMemories() {
+      try {
+        const mems = await (getAllMemoriesFromAPI() || getAllMemoriesFromDB());
+        if (!isMounted) return;
+        if (mems && Array.isArray(mems) && mems.length > 0) {
+          const normalized = mems.map((m) => normalizeDbMemory(m));
+          const existingIds = new Set(normalized.map((m) => m.id));
+          const local = getAllMemories();
+          const extraLocal = (local || []).filter((m) => !existingIds.has(m.id));
+          setAllMemoriesList([...normalized, ...extraLocal]);
+        } else {
+          setAllMemoriesList(getAllMemories());
+        }
+      } catch (err) {
+        console.warn('Could not fetch memories from API:', err);
+        if (isMounted) setAllMemoriesList(getAllMemories());
       }
-    }).catch(() => {/* backend offline — use local only */});
+    }
+    loadMemories();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const featured = memories[0];
   const otherMemories = allMemoriesList.length > 0 ? allMemoriesList : memories;
+  const featured = otherMemories.length > 0 ? otherMemories[0] : null;
 
   // Filter memories by category & search query
   const filteredMemories = otherMemories.filter((mem) => {
@@ -93,7 +106,7 @@ export default function Dashboard() {
             Welcome back, <span className="italic font-serif font-normal text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-100 to-purple-200">Ankush.</span>
           </h1>
           <p className="text-white/50 text-sm mt-0.5">
-            {memories.length} stories in your vault
+            {otherMemories.length} stories in your vault
           </p>
         </div>
 
@@ -112,7 +125,7 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <FeaturedMemory memory={featured} />
+        <FeaturedMemory memory={featured} items={otherMemories} />
       </motion.div>
 
       {/* Your Memories Section with Live Filters & Search */}

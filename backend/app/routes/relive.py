@@ -41,6 +41,16 @@ async def assemble_relive(memory_id: str = ""):
     logger.info("Received request to assemble relive media for memory_id=%s", memory_id)
     try:
         result = await video_service.assemble_relive(memory_id=memory_id)
+        if memory_id:
+            try:
+                from services.memory_service import handle_save_draft
+                handle_save_draft({
+                    "id": memory_id,
+                    "status": "ready",
+                    "items": result.get("audio_segments", [])
+                })
+            except Exception as err:
+                logger.warning(f"Could not sync assembled story to MongoDB: {err}")
         return result
     except FileNotFoundError as exc:
         logger.error("Script files missing: %s", exc)

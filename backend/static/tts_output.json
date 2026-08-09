@@ -4,7 +4,7 @@
     {
       "segment_id": "seg_01",
       "audio_url": "/static/audio/seg_01.wav",
-      "duration_sec": 10.41,
+      "duration_sec": 11.18,
       "mood": "funny",
       "tts_params_used": {
         "pace": 1.0,
@@ -14,7 +14,7 @@
     {
       "segment_id": "seg_02",
       "audio_url": "/static/audio/seg_02.wav",
-      "duration_sec": 7.59,
+      "duration_sec": 7.77,
       "mood": "funny",
       "tts_params_used": {
         "pace": 1.0,
@@ -24,7 +24,7 @@
     {
       "segment_id": "seg_03",
       "audio_url": "/static/audio/seg_03.wav",
-      "duration_sec": 3.75,
+      "duration_sec": 4.61,
       "mood": "excited",
       "tts_params_used": {
         "pace": 1.0,
@@ -34,7 +34,7 @@
     {
       "segment_id": "seg_04",
       "audio_url": "/static/audio/seg_04.wav",
-      "duration_sec": 5.63,
+      "duration_sec": 6.14,
       "mood": "nostalgic",
       "tts_params_used": {
         "pace": 1.0,
@@ -44,7 +44,7 @@
     {
       "segment_id": "seg_05",
       "audio_url": "/static/audio/seg_05.wav",
-      "duration_sec": 5.29,
+      "duration_sec": 5.55,
       "mood": "neutral",
       "tts_params_used": {
         "pace": 1.0,
@@ -54,7 +54,7 @@
     {
       "segment_id": "seg_06",
       "audio_url": "/static/audio/seg_06.wav",
-      "duration_sec": 8.45,
+      "duration_sec": 9.13,
       "mood": "nostalgic",
       "tts_params_used": {
         "pace": 1.0,
@@ -64,7 +64,7 @@
     {
       "segment_id": "seg_07",
       "audio_url": "/static/audio/seg_07.wav",
-      "duration_sec": 3.07,
+      "duration_sec": 3.5,
       "mood": "neutral",
       "tts_params_used": {
         "pace": 1.0,
@@ -74,7 +74,7 @@
     {
       "segment_id": "seg_08",
       "audio_url": "/static/audio/seg_08.wav",
-      "duration_sec": 6.49,
+      "duration_sec": 6.4,
       "mood": "funny",
       "tts_params_used": {
         "pace": 1.0,
@@ -84,7 +84,7 @@
     {
       "segment_id": "seg_09",
       "audio_url": "/static/audio/seg_09.wav",
-      "duration_sec": 8.62,
+      "duration_sec": 7.77,
       "mood": "warm",
       "tts_params_used": {
         "pace": 1.0,

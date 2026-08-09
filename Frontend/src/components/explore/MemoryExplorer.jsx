@@ -3,7 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, RotateCcw, Sparkles } from 'lucide-react';
 import ExplorePrompt from './ExplorePrompt';
 import ExploreResult from './ExploreResult';
+<<<<<<< HEAD
 import { askMemoryQuestion } from '../../services/api';
+=======
+import { exploreMemory } from '../../services/api';
+>>>>>>> origin/main
 
 export default function MemoryExplorer({ conversations, suggestedQuestions, memoryId, memoryTitle }) {
   const [results, setResults] = useState([]);
@@ -22,7 +26,6 @@ export default function MemoryExplorer({ conversations, suggestedQuestions, memo
   const askQuestion = async (question) => {
     setIsTyping(true);
     try {
-      // Call the real backend — grounded when AI artifacts exist, keyword fallback otherwise
       const data = await askMemoryQuestion(question, memoryId);
       setResults((prev) => [
         ...prev,
@@ -30,7 +33,8 @@ export default function MemoryExplorer({ conversations, suggestedQuestions, memo
           question,
           answer: data.answer,
           grounded: data.grounded,
-          // Pass along a related photo from static conversations if available
+          referencedMoments: data.referencedMoments || [],
+          referencedPeople: data.referencedPeople || [],
           relatedPhoto: (() => {
             const match = (conversations || []).find(
               (c) => c.question.toLowerCase() === question.toLowerCase()
@@ -41,16 +45,11 @@ export default function MemoryExplorer({ conversations, suggestedQuestions, memo
         },
       ]);
     } catch (err) {
-      setResults((prev) => [
-        ...prev,
-        {
-          question,
-          answer: 'Could not reach the AI assistant. Make sure the backend is running.',
-          grounded: false,
-          relatedPhoto: null,
-          momentId: null,
-        },
-      ]);
+      console.warn("Explore API call failed, falling back to mock matching:", err);
+      const match = (conversations || []).find((c) =>
+        c.question.toLowerCase() === question.toLowerCase()
+      ) || (conversations || [])[Math.floor(Math.random() * (conversations?.length || 1))];
+      setResults((prev) => [...prev, { ...(match || {}), question, answer: match?.answer || "AI service temporary unavailable." }]);
     } finally {
       setIsTyping(false);
     }

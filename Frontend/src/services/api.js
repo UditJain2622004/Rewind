@@ -154,6 +154,9 @@ export async function getAllMemoriesFromDB() {
   }
 }
 
+export const getAllMemoriesFromMongoDB = getAllMemoriesFromDB;
+export const getAllMemoriesFromAPI = getAllMemoriesFromDB;
+
 // ─────────────────────────────────────────────
 // Explore / Q&A
 // ─────────────────────────────────────────────
@@ -175,6 +178,8 @@ export async function askMemoryQuestion(query, memoryId = '') {
     return { query, answer: 'The AI assistant is temporarily unavailable. Please try again.', grounded: false };
   }
 }
+
+export const exploreMemory = (query) => askMemoryQuestion(query);
 
 // ─────────────────────────────────────────────
 // Relive Player Data

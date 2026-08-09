@@ -28,7 +28,8 @@ from services.memory_service import (
     handle_asset_upload,
     handle_save_draft,
     handle_get_draft,
-    handle_trigger_generation
+    handle_trigger_generation,
+    handle_get_all_memories
 )
 
 # Import all routers
@@ -107,6 +108,14 @@ def save_draft(payload: DraftPayload):
         logger.error(f"Draft save error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/memories")
+def get_all_memories():
+    """
+    Retrieves all memory documents stored in MongoDB database.
+    """
+    memories_list = handle_get_all_memories()
+    return {"status": "success", "count": len(memories_list), "memories": memories_list}
+
 @app.get("/api/memories/draft")
 def get_draft(memory_id: Optional[str] = None):
     """
@@ -125,6 +134,19 @@ def generate_memory(memory_id: str):
     result = handle_trigger_generation(memory_id)
     return result
 
+@app.get("/api/memories")
+def get_all_memories():
+    """
+    Retrieves all memory stories from MongoDB / vault service.
+    """
+    try:
+        memories_list = handle_get_all_memories()
+        return {"status": "success", "count": len(memories_list), "memories": memories_list}
+    except Exception as e:
+        logger.error(f"Error fetching memories: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     # Use config-based host and port if available, else default to 0.0.0.0:8000
@@ -138,4 +160,4 @@ if __name__ == "__main__":
         port = 8000
         debug = True
         
-    uvicorn.run("app.py:app", host=host, port=port, reload=debug)
+    uvicorn.run(app, host=host, port=port)

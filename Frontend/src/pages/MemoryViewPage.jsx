@@ -3,10 +3,43 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Sparkles, Wand2, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 import { memories, getAllMemories } from '../data/mockData';
+import { useMemoryLoader } from '../hooks/useMemoryLoader';
 import MemoryModeTabs from '../components/memory/MemoryModeTabs';
 import MemoryTimeline from '../components/memory/MemoryTimeline';
 import ContributorPanel from '../components/shared/ContributorPanel';
 import { runFullPipeline } from '../services/api';
+
+const DEFAULT_BANNER = '/images/goa-cover.png';
+const FALLBACK_BANNER = 'https://res.cloudinary.com/dynoxkmjy/image/upload/v1786251613/WhatsApp_Image_2026-08-09_at_10.15.58_1_bo6co1.jpg';
+
+const isValidImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  if (url.includes('test.jpg') || url.endsWith('/test.jpg')) return false;
+  return true;
+};
+
+function getBestCover(memory) {
+  if (!memory) return DEFAULT_BANNER;
+  if (memory.cover && memory.cover !== '/images/goa-cover.png' && isValidImageUrl(memory.cover)) return memory.cover;
+  if (memory.items && memory.items.length > 0) {
+    for (const item of memory.items) {
+      const isVoice = item.type === 'voice' || item.type === 'voice_note' || item.type === 'audio';
+      const isText = item.type === 'text' || item.type === 'text_note';
+      if (!isVoice && !isText) {
+        const url = item.file_url || item.url || item.preview;
+        if (isValidImageUrl(url)) return url;
+      }
+    }
+  }
+  if (memory.moments && memory.moments.length > 0) {
+    for (const moment of memory.moments) {
+      if (moment.photos && moment.photos.length > 0 && isValidImageUrl(moment.photos[0])) {
+        return moment.photos[0];
+      }
+    }
+  }
+  return isValidImageUrl(memory.cover) ? memory.cover : DEFAULT_BANNER;
+}
 
 // Pipeline steps shown in the progress UI
 const PIPELINE_STEPS = [
@@ -29,7 +62,6 @@ function GenerateModal({ memoryId, memoryTitle, onClose, onDone }) {
     try {
       await runFullPipeline(memoryId, ({ step, progress }) => {
         setStepLabel(step);
-        // Map step name to step index
         const idx = PIPELINE_STEPS.findIndex((s) => step.includes(s.key));
         if (idx >= 0) setCurrentStep(idx);
       });
@@ -55,7 +87,6 @@ function GenerateModal({ memoryId, memoryTitle, onClose, onDone }) {
         exit={{ scale: 0.92, opacity: 0 }}
         className="bg-[#111115] border border-white/15 rounded-3xl p-7 w-full max-w-md shadow-2xl"
       >
-        {/* Header */}
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-violet-600 flex items-center justify-center">
             <Wand2 size={20} className="text-white" />
@@ -66,7 +97,6 @@ function GenerateModal({ memoryId, memoryTitle, onClose, onDone }) {
           </div>
         </div>
 
-        {/* Idle state */}
         {phase === 'idle' && (
           <>
             <p className="text-sm text-white/70 mb-6 leading-relaxed">
@@ -91,7 +121,6 @@ function GenerateModal({ memoryId, memoryTitle, onClose, onDone }) {
           </>
         )}
 
-        {/* Running state */}
         {phase === 'running' && (
           <div className="space-y-3">
             {PIPELINE_STEPS.map((step, i) => {
@@ -119,7 +148,6 @@ function GenerateModal({ memoryId, memoryTitle, onClose, onDone }) {
           </div>
         )}
 
-        {/* Done state */}
         {phase === 'done' && (
           <div className="text-center py-4 space-y-3">
             <CheckCircle2 size={40} className="text-emerald-400 mx-auto" />
@@ -128,7 +156,6 @@ function GenerateModal({ memoryId, memoryTitle, onClose, onDone }) {
           </div>
         )}
 
-        {/* Error state */}
         {phase === 'error' && (
           <div className="space-y-4">
             <div className="flex items-start gap-3 p-3 rounded-xl bg-red-900/20 border border-red-500/30">
@@ -159,27 +186,56 @@ function GenerateModal({ memoryId, memoryTitle, onClose, onDone }) {
 export default function MemoryViewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { memory: loadedMemory, isLoading: isLoaderLoading } = useMemoryLoader(id);
   const [memory, setMemory] = useState(null);
   const [showGenerate, setShowGenerate] = useState(false);
+  const [coverImg, setCoverImg] = useState(() => getBestCover(loadedMemory));
 
   useEffect(() => {
-    const all = getAllMemories();
-    setMemory(all.find((m) => m.id === id) || all[0]);
-  }, [id]);
+    if (loadedMemory) {
+      setMemory(loadedMemory);
+      const newCover = getBestCover(loadedMemory);
+      if (newCover && newCover !== DEFAULT_BANNER) {
+        setCoverImg(newCover);
+      }
+    } else {
+      const all = getAllMemories();
+      setMemory(all.find((m) => m.id === id) || all[0]);
+    }
+  }, [id, loadedMemory]);
+
+  if (isLoaderLoading && !memory) {
+    return (
+      <div className="min-h-screen bg-memory-base flex items-center justify-center">
+        <div className="text-center">
+          <span className="animate-spin inline-block w-8 h-8 border-4 border-t-transparent border-violet-500 rounded-full mb-4"></span>
+          <p className="text-white/60">Loading Memory Vault...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!memory) return null;
+
+  const currentCoverSrc = coverImg || memory.cover || getBestCover(memory) || DEFAULT_BANNER;
 
   return (
     <>
       <main className="min-h-screen">
         {/* Cinematic cover */}
-        <div className="relative h-[60vh] sm:h-[70vh] overflow-hidden">
+        <div className="relative h-[60vh] sm:h-[70vh] overflow-hidden bg-[#101014]">
           <motion.img
+            key={currentCoverSrc}
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
             transition={{ duration: 1.5, ease: 'easeOut' }}
-            src={memory.cover}
-            alt={memory.title}
+            src={currentCoverSrc}
+            onError={() => {
+              if (coverImg !== FALLBACK_BANNER) {
+                setCoverImg(FALLBACK_BANNER);
+              }
+            }}
+            alt={memory.title || 'Memory Banner'}
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-memory-base via-memory-base/40 to-transparent" />
@@ -192,7 +248,7 @@ export default function MemoryViewPage() {
               transition={{ delay: 0.3, duration: 0.7 }}
             >
               <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-semibold text-white mb-2">
-                {memory.fullTitle}
+                {memory.fullTitle || memory.title || 'Memory Vault'}
               </h1>
               <p className="text-lg text-white/70">{memory.description}</p>
             </motion.div>
@@ -252,7 +308,7 @@ export default function MemoryViewPage() {
         {showGenerate && (
           <GenerateModal
             memoryId={memory.id}
-            memoryTitle={memory.fullTitle}
+            memoryTitle={memory.fullTitle || memory.title}
             onClose={() => setShowGenerate(false)}
             onDone={() => {
               setShowGenerate(false);
