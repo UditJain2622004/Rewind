@@ -98,8 +98,8 @@ export default function CreatePage() {
       console.warn('Could not clear active draft:', e);
     }
 
-    // Redirect to Dashboard
-    navigate('/dashboard');
+    // Redirect to the newly created memory's page
+    navigate(`/memory/${newMemoryObj.id}`);
   };
 
   if (processing) {
