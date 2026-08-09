@@ -157,13 +157,31 @@ def call_sarvam_tts(
         raise RuntimeError(f"Sarvam API HTTP {exc.code}: {err_msg}") from exc
 
 
+def join_wav_files(segment_paths: list[Path], output_combined_path: Path) -> float:
+    """Concatenate multiple WAV files into a single combined WAV audio file."""
+    if not segment_paths:
+        return 0.0
+
+    output_combined_path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(segment_paths[0]), "rb") as first_wav:
+        params = first_wav.getparams()
+
+    with wave.open(str(output_combined_path), "wb") as outfile:
+        outfile.setparams(params)
+        for path in segment_paths:
+            with wave.open(str(path), "rb") as infile:
+                outfile.writeframes(infile.readframes(infile.getnframes()))
+
+    return get_wav_duration(output_combined_path)
+
+
 def generate_audio_from_script(
     script_path: str | Path,
     output_dir: str | Path,
     api_key: str | None = None,
     override_speaker: str | None = None
 ) -> dict[str, Any]:
-    """Reads script JSON, invokes Sarvam TTS for each segment, saves WAV files, and generates tts_output.json."""
+    """Reads script JSON, invokes Sarvam TTS for each segment, saves WAV files, concatenates them into full_audio.wav, and generates tts_output.json."""
 
     script_file = Path(script_path)
     out_dir = Path(output_dir)
@@ -191,6 +209,7 @@ def generate_audio_from_script(
         using_api = True
 
     audio_segments = []
+    generated_wav_paths = []
     total_duration = 0.0
 
     print(f"\n==================================================")
@@ -238,6 +257,7 @@ def generate_audio_from_script(
             print(f"     [FALLBACK] Created mock WAV fallback -> {wav_path.name} ({duration}s)")
 
         total_duration += duration
+        generated_wav_paths.append(wav_path)
         audio_segments.append({
             "segment_id": seg_id,
             "audio_file": wav_path.name,
@@ -248,11 +268,18 @@ def generate_audio_from_script(
             "tts_params_used": mapped
         })
 
+    # Join all WAV files into one full master audio file
+    full_audio_path = out_dir / "full_audio.wav"
+    combined_duration = join_wav_files(generated_wav_paths, full_audio_path)
+    print(f"\n [OK] Joined all {len(generated_wav_paths)} segments into single file -> {full_audio_path.name} ({combined_duration}s)")
+
     tts_output = {
         "script_id": script_id,
         "language_code": language_code,
         "speaker": default_speaker,
         "total_duration_sec": round(total_duration, 2),
+        "full_audio_file": full_audio_path.name,
+        "full_audio_path": str(full_audio_path.resolve()),
         "audio_segments": audio_segments
     }
 
@@ -260,8 +287,9 @@ def generate_audio_from_script(
     output_manifest_path.write_text(json.dumps(tts_output, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print(f"\n==================================================")
-    print(f" Generation Complete!")
-    print(f" Total Audio Duration: {round(total_duration, 2)} seconds")
+    print(f" Generation & Concatenation Complete!")
+    print(f" Combined Audio File: {full_audio_path.resolve()}")
+    print(f" Total Audio Duration: {round(combined_duration, 2)} seconds")
     print(f" Manifest Saved: {output_manifest_path.resolve()}")
     print(f"==================================================\n")
 

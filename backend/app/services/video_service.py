@@ -114,6 +114,23 @@ class VideoService:
         with wave.open(file_path, "rb") as wf:
             return round(wf.getnframes() / float(wf.getframerate()), 2)
 
+    def _join_wav_files(self, segment_paths: List[str], output_combined_path: str) -> float:
+        """Concatenate multiple WAV files into a single master combined WAV audio file."""
+        if not segment_paths:
+            return 0.0
+
+        os.makedirs(os.path.dirname(output_combined_path), exist_ok=True)
+        with wave.open(segment_paths[0], "rb") as first_wav:
+            params = first_wav.getparams()
+
+        with wave.open(output_combined_path, "wb") as outfile:
+            outfile.setparams(params)
+            for path in segment_paths:
+                with wave.open(path, "rb") as infile:
+                    outfile.writeframes(infile.readframes(infile.getnframes()))
+
+        return self._get_wav_duration(output_combined_path)
+
     # -----------------------------------------------------------------------
     # Public API
     # -----------------------------------------------------------------------
@@ -121,7 +138,7 @@ class VideoService:
     async def assemble_relive(self, memory_id: str = "") -> Dict[str, Any]:
         """
         Load a script (relive_v1.json or legacy script.json), generate TTS
-        audio per segment, and write tts_output.json.
+        audio per segment, concatenate all audio into full_audio.wav, and write tts_output.json.
         """
         script_path = self._resolve_script_path(memory_id)
         if not os.path.exists(script_path):
@@ -143,6 +160,7 @@ class VideoService:
         )
 
         audio_segments = []
+        created_wav_paths = []
         for segment in segments:
             segment_id = segment.get("segment_id")
             narration = segment.get("narration_text", "")
@@ -172,6 +190,7 @@ class VideoService:
                     logger.error("TTS failed for %s: %s — using mock.", segment_id, exc)
                     duration_sec = self._create_mock_wav(file_path, narration)
 
+            created_wav_paths.append(file_path)
             audio_segments.append({
                 "segment_id": segment_id,
                 "audio_url": self._audio_url(memory_id, filename),
@@ -180,10 +199,17 @@ class VideoService:
                 "tts_params_used": mapped,
             })
 
+        # Concatenate all segment WAV files into a single full_audio.wav
+        full_audio_filename = "full_audio.wav"
+        full_audio_path = os.path.join(audio_dir, full_audio_filename)
+        full_duration = self._join_wav_files(created_wav_paths, full_audio_path)
+        logger.info("Combined %d WAV segments into %s (%.1fs)", len(created_wav_paths), full_audio_path, full_duration)
+
         tts_output = {
             "script_id": script_id,
+            "full_audio_url": self._audio_url(memory_id, full_audio_filename),
+            "full_duration_sec": full_duration,
             "audio_segments": audio_segments,
-            "full_audio_url": None,
         }
         with open(output_json_path, "w", encoding="utf-8") as f:
             json.dump(tts_output, f, indent=2)
