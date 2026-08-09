@@ -5,7 +5,7 @@ import { Plus, Search } from 'lucide-react';
 import FeaturedMemory from './FeaturedMemory';
 import MemoryGrid from './MemoryGrid';
 import { memories, getAllMemories } from '../../data/mockData';
-import { getAllMemoriesFromMongoDB } from '../../services/api';
+import { getAllMemoriesFromAPI } from '../../services/api';
 import { formatMemoryData } from '../../hooks/useMemoryLoader';
 
 const categories = [
@@ -23,21 +23,25 @@ export default function Dashboard() {
 
   useEffect(() => {
     let isMounted = true;
-
-    // Fetch live memories from MongoDB database in background
-    getAllMemoriesFromMongoDB().then((dbMemories) => {
-      if (!isMounted) return;
-      if (dbMemories && Array.isArray(dbMemories) && dbMemories.length > 0) {
-        const formattedList = dbMemories.map((m) => formatMemoryData(m.id || m._id || m.memory_id, m));
-        const existingIds = new Set(formattedList.map(m => m.id));
-        const local = getAllMemories();
-        const extraLocal = (local || []).filter(m => !existingIds.has(m.id));
-        setAllMemoriesList([...formattedList, ...extraLocal]);
+    async function loadMemories() {
+      try {
+        const mems = await getAllMemoriesFromAPI();
+        if (!isMounted) return;
+        if (mems && Array.isArray(mems) && mems.length > 0) {
+          const formattedList = mems.map((m) => formatMemoryData(m.id || m._id || m.memory_id, m));
+          const existingIds = new Set(formattedList.map(m => m.id));
+          const local = getAllMemories();
+          const extraLocal = (local || []).filter(m => !existingIds.has(m.id));
+          setAllMemoriesList([...formattedList, ...extraLocal]);
+        } else {
+          setAllMemoriesList(getAllMemories());
+        }
+      } catch (err) {
+        console.warn('Could not fetch memories from API:', err);
+        if (isMounted) setAllMemoriesList(getAllMemories());
       }
-    }).catch((err) => {
-      console.warn("MongoDB memories background sync error:", err);
-    });
-
+    }
+    loadMemories();
     return () => {
       isMounted = false;
     };

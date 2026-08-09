@@ -5,7 +5,7 @@ import { Sparkles, Wand2, ArrowRight, Layers, Music, Database, Cloud, RefreshCw 
 import ExperienceCreator from '../components/create/ExperienceCreator';
 import MediaUploader from '../components/create/MediaUploader';
 import AIProcessingAnimation from '../components/create/AIProcessingAnimation';
-import { getDraftFromMongoDB, saveDraftToMongoDB, triggerMemoryGeneration } from '../services/api';
+import { getDraftFromMongoDB, saveDraftToMongoDB, triggerMemoryGeneration, assembleRelive } from '../services/api';
 import { saveUserMemory } from '../data/mockData';
 
 export default function CreatePage() {
@@ -58,6 +58,7 @@ export default function CreatePage() {
   }, [memoryName, files, selectedVoice, memoryId]);
 
   const handleGenerate = async () => {
+    setProcessing(true);
     const titleText = memoryName.trim() || 'College';
     const firstPhoto = files.find((f) => f.type === 'photo');
     const photoCdnUrl = firstPhoto ? (firstPhoto.file_url || firstPhoto.url || (firstPhoto.preview && !firstPhoto.preview.startsWith('blob:') ? firstPhoto.preview : null)) : null;
@@ -78,15 +79,29 @@ export default function CreatePage() {
       items: files
     };
 
-    // Save memory to MongoDB
-    await saveDraftToMongoDB({
-      id: memoryId,
-      name: titleText,
-      title: titleText,
-      voice_style: selectedVoice,
-      status: 'saved',
-      items: files
-    });
+    try {
+      // 1. Call API to assemble relive video story from hardcoded scripts & assets
+      await assembleRelive();
+    } catch (err) {
+      console.warn("Assemble relive API call fallback/warning:", err);
+    }
+
+    try {
+      // 2. Save memory to MongoDB
+      await saveDraftToMongoDB({
+        id: memoryId,
+        name: titleText,
+        title: titleText,
+        voice_style: selectedVoice,
+        status: 'saved',
+        items: files
+      });
+
+      // 3. Trigger generation status update
+      await triggerMemoryGeneration(memoryId);
+    } catch (err) {
+      console.warn("MongoDB draft save fallback:", err);
+    }
 
     // Save into localStorage memories list so it shows in dashboard grid
     saveUserMemory(newMemoryObj);
@@ -98,7 +113,8 @@ export default function CreatePage() {
       console.warn('Could not clear active draft:', e);
     }
 
-    // Redirect to Dashboard
+    setProcessing(false);
+    // Redirect to Dashboard (Memory Page)
     navigate('/dashboard');
   };
 

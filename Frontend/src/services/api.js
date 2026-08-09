@@ -119,3 +119,77 @@ export async function triggerMemoryGeneration(memoryId) {
     return { memory_id: memoryId, status: 'processing' };
   }
 }
+
+/**
+ * Triggers audio timeline and speech compilation for the Relive experience.
+ */
+export async function assembleRelive() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/assemble-relive`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      throw new Error(`Assembly failed: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('API assembleRelive error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches compiled relive visual timelines and segment details from backend.
+ */
+export async function getReliveData() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/relive-data`);
+    if (!response.ok) {
+      throw new Error(`Fetching relive data failed: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('API getReliveData error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Queries the unified AI explore engine about a memory.
+ */
+export async function exploreMemory(query) {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/explore?query=${encodeURIComponent(query)}`
+    );
+    if (!response.ok) {
+      throw new Error(`Explore search failed: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('API exploreMemory error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches all memory stories from backend API with fallback support.
+ */
+export async function getAllMemoriesFromAPI() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/memories`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch memories: ${response.statusText}`);
+    }
+    const data = await response.json();
+    if (data && data.memories) {
+      return data.memories;
+    }
+  } catch (error) {
+    console.warn('Backend API memories fetch fallback to local:', error.message);
+  }
+  const { getAllMemories } = await import('../data/mockData');
+  return getAllMemories();
+}
+
+

@@ -5,6 +5,7 @@ import { useMemoryLoader } from '../hooks/useMemoryLoader';
 import MemoryModeTabs from '../components/memory/MemoryModeTabs';
 import MemoryTimeline from '../components/memory/MemoryTimeline';
 import ContributorPanel from '../components/shared/ContributorPanel';
+import { assembleRelive, getReliveData } from '../services/api';
 
 const DEFAULT_BANNER = '/images/goa-cover.png';
 const FALLBACK_BANNER = 'https://res.cloudinary.com/dynoxkmjy/image/upload/v1786251613/WhatsApp_Image_2026-08-09_at_10.15.58_1_bo6co1.jpg';
@@ -47,19 +48,46 @@ function getBestCover(memory) {
 
 export default function MemoryViewPage() {
   const { id } = useParams();
-  const { memory } = useMemoryLoader(id);
-  const [coverImg, setCoverImg] = useState(() => getBestCover(memory));
+  const { memory: loadedMemory, isLoading: isLoaderLoading } = useMemoryLoader(id);
+  const [memory, setMemory] = useState(loadedMemory);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationSuccess, setGenerationSuccess] = useState(false);
+  const [coverImg, setCoverImg] = useState(() => getBestCover(loadedMemory));
 
   useEffect(() => {
-    if (memory) {
-      const newCover = getBestCover(memory);
+    if (loadedMemory) {
+      setMemory(loadedMemory);
+      const newCover = getBestCover(loadedMemory);
       if (newCover && newCover !== DEFAULT_BANNER) {
-        setCoverImg(newCover);
-      } else if (!coverImg || coverImg === DEFAULT_BANNER) {
         setCoverImg(newCover);
       }
     }
-  }, [memory]);
+  }, [loadedMemory]);
+
+  const handleGenerateStory = async () => {
+    setIsGenerating(true);
+    try {
+      await assembleRelive();
+      setGenerationSuccess(true);
+      alert("AI Story synthesized successfully! You can now Relive your trip.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to synthesize memory story. Please check your credentials or backend server.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  if (isLoaderLoading) {
+    return (
+      <div className="min-h-screen bg-memory-base flex items-center justify-center">
+        <div className="text-center">
+          <span className="animate-spin inline-block w-8 h-8 border-4 border-t-transparent border-violet-500 rounded-full mb-4"></span>
+          <p className="text-memory-ivory-muted">Loading Memory Vault...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!memory) return null;
 
@@ -105,10 +133,22 @@ export default function MemoryViewPage() {
             className="shrink-0"
           >
             <button
-              onClick={() => alert("AI Story Engine started! Synthesizing narration and photos...")}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-violet-600 hover:from-amber-300 hover:to-violet-500 text-white font-bold text-sm shadow-xl shadow-amber-500/25 transition-all flex items-center gap-2"
+              onClick={handleGenerateStory}
+              disabled={isGenerating}
+              className={`px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-violet-600 hover:from-amber-300 hover:to-violet-500 text-white font-bold text-sm shadow-xl transition-all flex items-center gap-2 ${
+                isGenerating ? 'opacity-80 cursor-not-allowed shadow-none' : 'shadow-amber-500/25'
+              }`}
             >
-              <span>✨ Generate AI Story</span>
+              {isGenerating ? (
+                <>
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-t-transparent border-white rounded-full"></span>
+                  <span>Synthesizing...</span>
+                </>
+              ) : generationSuccess ? (
+                <span>✨ Story Ready!</span>
+              ) : (
+                <span>✨ Generate AI Story</span>
+              )}
             </button>
           </motion.div>
         </div>
