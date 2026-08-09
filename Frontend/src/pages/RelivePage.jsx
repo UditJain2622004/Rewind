@@ -101,16 +101,6 @@ export default function RelivePage() {
   }
 
   return (
-    <>
-      {/* Back button */}
-      <Link
-        to={`/memory/${memory.id}`}
-        className="fixed top-4 left-4 z-40 glass rounded-full p-2 text-white/60 hover:text-white transition-colors"
-      >
-        <ArrowLeft size={20} />
-      </Link>
-
-      <StoryPlayer moments={moments} memoryTitle={memory.fullTitle} />
-    </>
+    <StoryPlayer moments={moments} memoryTitle={memory?.fullTitle} memoryId={memory?.id} />
   );
 }
