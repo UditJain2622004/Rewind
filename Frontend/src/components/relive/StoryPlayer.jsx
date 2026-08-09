@@ -52,18 +52,69 @@ export default function StoryPlayer({ moments, memoryTitle, memoryId }) {
     }
   }, [isPlaying, ambientMusic]);
 
-  const getAudioSrc = () => {
-    if (!moment || !moment.audioUrl) return '';
-    const baseUrl = 'http://localhost:8000';
-    const url = moment.audioUrl.startsWith('http') 
-      ? moment.audioUrl 
-      : `${baseUrl}${moment.audioUrl}`;
-    return `${url}?t=${new Date().getTime()}`;
-  };
+  // Stable audio source computation (without dynamic Date.now on every render)
+  const audioSrc = moment?.audioUrl
+    ? (moment.audioUrl.startsWith('http') ? moment.audioUrl : `http://localhost:8000${moment.audioUrl}`)
+    : '';
+
+  // Reset timing when slide changes
+  useEffect(() => {
+    setCurrentTime(0);
+    setDuration(moment?.duration || 5.0);
+  }, [current, moment]);
+
+  // Handle continuous audio playback on slide change or play state toggle
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying && audioSrc) {
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((e) => {
+          console.warn("Audio autoplay blocked or interrupted:", e);
+        });
+      }
+    } else {
+      audio.pause();
+    }
+  }, [isPlaying, current, audioSrc]);
+
+  // Fallback timer: if audio fails, missing, or blocked, auto-advance slide smoothly
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    // Fallback interval to update progress and advance if no audio or audio ended
+    const interval = setInterval(() => {
+      if (!audioRef.current || audioRef.current.paused || !audioSrc) {
+        setCurrentTime((prevTime) => {
+          const nextTime = prevTime + 0.1;
+          if (nextTime >= duration) {
+            handleAudioEnded();
+            return 0;
+          }
+          return nextTime;
+        });
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, duration, audioSrc, current]);
+
+  // Sync ambient music playback
+  useEffect(() => {
+    if (!ambientAudioRef.current) return;
+    ambientAudioRef.current.volume = 0.08;
+    if (isPlaying && ambientMusic) {
+      ambientAudioRef.current.play().catch((e) => console.log("Ambient audio blocked:", e));
+    } else {
+      ambientAudioRef.current.pause();
+    }
+  }, [isPlaying, ambientMusic]);
 
   const handleMetadataLoaded = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration || moment?.duration || 5.0);
+    if (audioRef.current && audioRef.current.duration) {
+      setDuration(audioRef.current.duration);
     }
   };
 
@@ -80,6 +131,11 @@ export default function StoryPlayer({ moments, memoryTitle, memoryId }) {
       setIsPlaying(false);
       goTo(0);
     }
+  };
+
+  const handleAudioError = () => {
+    console.warn("Audio load error for segment:", moment?.id);
+    // On audio load error, fallback duration and let interval handle advance
   };
 
   const goTo = (index) => {
@@ -105,9 +161,10 @@ export default function StoryPlayer({ moments, memoryTitle, memoryId }) {
       {/* Main Narration Audio Element */}
       <audio
         ref={audioRef}
-        src={getAudioSrc()}
+        src={audioSrc}
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleAudioEnded}
+        onError={handleAudioError}
         onLoadedMetadata={handleMetadataLoaded}
       />
 
@@ -242,22 +299,9 @@ export default function StoryPlayer({ moments, memoryTitle, memoryId }) {
           </div>
         </div>
 
-        {/* LOWER SECTION: AI Narration Caption Card & Controls */}
+        {/* LOWER SECTION: Controls (Caption overlay removed) */}
         <div className="relative z-30 px-4 pb-4 pt-10 flex flex-col gap-4">
           
-          {/* AI Narration Text Overlay Card */}
-          <motion.div
-            key={`narration-${moment.id}`}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.4 }}
-            className="p-4 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/15 shadow-2xl text-center"
-          >
-            <p className="font-serif text-sm sm:text-base text-white/95 leading-relaxed italic font-normal drop-shadow-md">
-              "{moment.aiNarration}"
-            </p>
-          </motion.div>
-
           {/* Reel Navigation & Playback Controls Bar */}
           <div className="flex items-center justify-between px-2 pt-1">
             {/* Prev Moment */}
