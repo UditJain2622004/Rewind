@@ -1,5 +1,14 @@
 import os
 import logging
+
+# The asset-insight CLI should remain usable without installing the optional
+# FastAPI server stack. Dispatch before importing server-only dependencies.
+import sys
+if any(flag in sys.argv for flag in ("--enrich", "--dry-run", "--manifest")):
+    from asset_insights import main as asset_insights_main
+    asset_insights_main()
+    raise SystemExit(0)
+
 from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -107,15 +116,6 @@ def generate_memory(memory_id: str):
     return result
 
 if __name__ == "__main__":
-    # Preserve the asset-insight CLI alongside the FastAPI server. Running
-    # with asset-insight flags delegates to the dedicated module; otherwise
-    # this remains the normal remote backend entrypoint.
-    import sys
-    if any(flag in sys.argv for flag in ("--enrich", "--dry-run", "--manifest")):
-        from asset_insights import main as asset_insights_main
-        asset_insights_main()
-        raise SystemExit(0)
-
     import uvicorn
     # Use config-based host and port if available, else default to 0.0.0.0:8000
     try:
