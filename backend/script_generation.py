@@ -127,6 +127,9 @@ def _normalise_script(
 
 def _remove_em_dashes(text: str) -> str:
     """Keep TTS narration conversational without letting punctuation be read awkwardly."""
+    text = re.sub(r"\[(?:laughs?|laughter)\]|\((?:laughs?|laughter)\)", " haha ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\[(?:sighs?|sigh)\]|\((?:sighs?|sigh)\)", " uff... ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\[(?:gasps?|gasp)\]|\((?:gasps?|gasp)\)", " oh! ", text, flags=re.IGNORECASE)
     text = text.replace("—", ", ").replace("–", "-")
     return re.sub(r"\s{2,}", " ", text).strip()
 
@@ -271,6 +274,12 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             "22 spoken words per sentence.\n"
             "- Use contractions, fragments, repetition, direct verbs, and natural pauses. A line should sound good "
             "when read aloud once, not look impressive in an essay.\n"
+            "- Add a small number of natural vocal beats across the script: umm, uh, hmm, wait, okay, oh no, uff, "
+            "ahh, or haha. Use them only when the narrator would genuinely hesitate, react, laugh, or sigh.\n"
+            "- Write laughs and sighs as speakable text such as 'haha', 'heh', 'uff...', or 'haa...', never as "
+            "[laughs], (laughs), [sigh], SSML, or stage directions.\n"
+            "- Do not put a filler in every line. One well-placed 'wait...' before a reveal is better than constant "
+            "robotic umm and ahh.\n"
             "- Use commas, full stops, ellipses, and occasional exclamation marks to signal pace and emotion. Do not "
             "use stage directions, bracketed notes, markdown, or em dashes.\n"
             "- Let emotion appear in the words. For example: 'You were exhausted. Still, you showed up.' is stronger "
