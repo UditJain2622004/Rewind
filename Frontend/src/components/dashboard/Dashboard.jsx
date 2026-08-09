@@ -5,7 +5,7 @@ import { Plus, Search } from 'lucide-react';
 import FeaturedMemory from './FeaturedMemory';
 import MemoryGrid from './MemoryGrid';
 import { memories, getAllMemories } from '../../data/mockData';
-import { getAllMemoriesFromMongoDB } from '../../services/api';
+import { getAllMemoriesFromAPI, getAllMemoriesFromDB } from '../../services/api';
 import { formatMemoryData } from '../../hooks/useMemoryLoader';
 
 const categories = [
@@ -16,6 +16,33 @@ const categories = [
   { id: 'wedding', label: 'Weddings' },
 ];
 
+/** Normalize a raw MongoDB memory document into the shape the UI expects. */
+function normalizeDbMemory(doc) {
+  const id = doc.memory_id || doc._id || doc.id || `db_${Math.random().toString(36).slice(2)}`;
+  if (doc.fullTitle || doc.cover) {
+    return formatMemoryData(id, doc);
+  }
+  const title = doc.title || doc.name || 'Untitled Memory';
+  const firstImage = (doc.items || []).find((i) => i.type === 'image' || i.type === 'photo');
+  const cover = firstImage
+    ? firstImage.file_url || firstImage.url || firstImage.preview
+    : 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80';
+  return {
+    id,
+    title,
+    subtitle: new Date(doc.updated_at || doc.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+    fullTitle: `${title}`,
+    cover,
+    description: `${(doc.items || []).length} moments`,
+    momentsCount: (doc.items || []).length,
+    contributors: [],
+    moments: [],
+    perspectives: [],
+    category: doc.category || 'milestone',
+    status: doc.status || 'draft',
+  };
+}
+
 export default function Dashboard() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,21 +50,25 @@ export default function Dashboard() {
 
   useEffect(() => {
     let isMounted = true;
-
-    // Fetch live memories from MongoDB database in background
-    getAllMemoriesFromMongoDB().then((dbMemories) => {
-      if (!isMounted) return;
-      if (dbMemories && Array.isArray(dbMemories) && dbMemories.length > 0) {
-        const formattedList = dbMemories.map((m) => formatMemoryData(m.id || m._id || m.memory_id, m));
-        const existingIds = new Set(formattedList.map(m => m.id));
-        const local = getAllMemories();
-        const extraLocal = (local || []).filter(m => !existingIds.has(m.id));
-        setAllMemoriesList([...formattedList, ...extraLocal]);
+    async function loadMemories() {
+      try {
+        const mems = await (getAllMemoriesFromAPI() || getAllMemoriesFromDB());
+        if (!isMounted) return;
+        if (mems && Array.isArray(mems) && mems.length > 0) {
+          const normalized = mems.map((m) => normalizeDbMemory(m));
+          const existingIds = new Set(normalized.map((m) => m.id));
+          const local = getAllMemories();
+          const extraLocal = (local || []).filter((m) => !existingIds.has(m.id));
+          setAllMemoriesList([...normalized, ...extraLocal]);
+        } else {
+          setAllMemoriesList(getAllMemories());
+        }
+      } catch (err) {
+        console.warn('Could not fetch memories from API:', err);
+        if (isMounted) setAllMemoriesList(getAllMemories());
       }
-    }).catch((err) => {
-      console.warn("MongoDB memories background sync error:", err);
-    });
-
+    }
+    loadMemories();
     return () => {
       isMounted = false;
     };

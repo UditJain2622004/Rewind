@@ -1,0 +1,155 @@
+[
+    {
+        "asset_id": "ast_0001",
+        "experience_id": "exp_iimb_hackathon",
+        "type": "image",
+        "contributor_id": "ankush",
+        "contributor_name": "Ankush",
+        "file_url": "https://res.cloudinary.com/dynoxkmjy/image/upload/v1786251613/WhatsApp_Image_2026-08-09_at_10.15.58_1_bo6co1.jpg",
+        "uploaded_at": "2026-08-02T20:10:00Z",
+        "captured_at": "2026-08-01T06:15:00+05:30",
+        "geo": {
+            "lat": 12.9081,
+            "lng": 77.5831
+        },
+        "user_caption": "Rohit and I, dead tired after an overnight general coach train ride",
+        "user_tags": [
+            "arrival",
+            "tired"
+        ]
+    },
+    {
+        "asset_id": "ast_0004",
+        "experience_id": "exp_iimb_hackathon",
+        "type": "image",
+        "contributor_id": "rohit",
+        "contributor_name": "Rohit",
+        "file_url": "https://res.cloudinary.com/dynoxkmjy/image/upload/v1786251662/WhatsApp_Image_2026-08-09_at_10.17.43_b4gbkj.jpg",
+        "uploaded_at": "2026-08-02T20:13:00Z",
+        "captured_at": "2026-08-01T07:30:00+05:30",
+        "geo": {
+            "lat": 12.9081,
+            "lng": 77.5831
+        },
+        "user_caption": "Arrived early so we walked the whole campus before anything else",
+        "user_tags": [
+            "campus",
+            "explore"
+        ]
+    },
+    {
+        "asset_id": "ast_0006",
+        "experience_id": "exp_iimb_hackathon",
+        "type": "image",
+        "contributor_id": "udit",
+        "contributor_name": "Udit",
+        "file_url": "https://res.cloudinary.com/dynoxkmjy/image/upload/v1786251633/WhatsApp_Image_2026-08-09_at_10.17.42_1_hodb8l.jpg",
+        "uploaded_at": "2026-08-02T20:15:00Z",
+        "captured_at": "2026-08-01T10:00:00+05:30",
+        "geo": {
+            "lat": 12.9081,
+            "lng": 77.5831
+        },
+        "user_caption": "Building time begins, heads down",
+        "user_tags": [
+            "hackathon",
+            "building"
+        ]
+    },
+    {
+        "asset_id": "ast_0007",
+        "experience_id": "exp_iimb_hackathon",
+        "type": "image",
+        "contributor_id": "rohit",
+        "contributor_name": "Rohit",
+        "file_url": "https://res.cloudinary.com/dynoxkmjy/image/upload/v1786251631/WhatsApp_Image_2026-08-09_at_10.17.41_1_rwduko.jpg",
+        "uploaded_at": "2026-08-02T20:16:00Z",
+        "captured_at": "2026-08-01T23:45:00+05:30",
+        "geo": {
+            "lat": 12.9077,
+            "lng": 77.5835
+        },
+        "user_caption": "Night shots on the famous butt chairs before heading to a hotel - not allowed to stay on campus overnight",
+        "user_tags": [
+            "3idiots",
+            "night"
+        ]
+    },
+    {
+        "asset_id": "ast_0008",
+        "experience_id": "exp_iimb_hackathon",
+        "type": "image",
+        "contributor_id": "ankush",
+        "contributor_name": "Ankush",
+        "file_url": "https://res.cloudinary.com/dynoxkmjy/image/upload/v1786251634/WhatsApp_Image_2026-08-09_at_10.17.42_2_kqmbup.jpg",
+        "uploaded_at": "2026-08-02T20:17:00Z",
+        "captured_at": "2026-08-02T09:00:00+05:30",
+        "geo": {
+            "lat": 12.9081,
+            "lng": 77.5831
+        },
+        "user_caption": "Back on campus next morning, continuing to build",
+        "user_tags": [
+            "hackathon",
+            "building"
+        ]
+    },
+    {
+        "asset_id": "ast_0010",
+        "experience_id": "exp_iimb_hackathon",
+        "type": "image",
+        "contributor_id": "ankush",
+        "contributor_name": "Ankush",
+        "file_url": "https://res.cloudinary.com/dynoxkmjy/image/upload/v1786251596/WhatsApp_Image_2026-08-09_at_10.17.40_rnhxkt.jpg",
+        "uploaded_at": "2026-08-02T20:19:00Z",
+        "captured_at": "2026-08-02T18:00:00+05:30",
+        "geo": {
+            "lat": 12.9077,
+            "lng": 77.5835
+        },
+        "user_caption": "Didn't win, but one last round of pics at the water tank before saying goodbye to IIM B",
+        "user_tags": [
+            "goodbye",
+            "landmark"
+        ]
+    },
+    {
+        "asset_id": "ast_0050",
+        "experience_id": "exp_iimb_hackathon",
+        "type": "voice_note",
+        "contributor_id": "rohit",
+        "contributor_name": "Rohit",
+        "file_url": "https://res.cloudinary.com/dynoxkmjy/video/upload/v1786251576/1_cifmrt.mp3",
+        "uploaded_at": "2026-08-02T20:25:00Z",
+        "recorded_at": "2026-08-01T07:05:00+05:30",
+        "duration_sec": 38,
+        "linked_asset_ids": [],
+        "raw_text": null
+    },
+    {
+        "asset_id": "ast_0051",
+        "experience_id": "exp_iimb_hackathon",
+        "type": "voice_note",
+        "contributor_id": "udit",
+        "contributor_name": "Udit",
+        "file_url": "https://res.cloudinary.com/dynoxkmjy/video/upload/v1786251575/2_qjwofi.mp3",
+        "uploaded_at": "2026-08-02T20:27:00Z",
+        "recorded_at": "2026-08-02T00:10:00+05:30",
+        "duration_sec": 45,
+        "linked_asset_ids": [],
+        "raw_text": null
+    },
+    {
+        "asset_id": "ast_0052",
+        "experience_id": "exp_iimb_hackathon",
+        "type": "voice_note",
+        "contributor_id": "ankush",
+        "contributor_name": "Ankush",
+        "file_url": "https://res.cloudinary.com/dynoxkmjy/video/upload/v1786251574/3_mvmfpl.mp3",
+        "uploaded_at": "2026-08-02T20:30:00Z",
+        "recorded_at": "2026-08-02T18:30:00+05:30",
+        "duration_sec": 40,
+        "linked_asset_ids": [],
+        "raw_text": null
+    }
+]

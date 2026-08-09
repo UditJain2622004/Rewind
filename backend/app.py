@@ -1,16 +1,40 @@
+import os
 import logging
+import sys
+from pathlib import Path
+
+# Ensure this backend directory is on sys.path so pipeline_service and the
+# individual stage modules (asset_insights, memory_generation, script_generation)
+# are always importable regardless of the working directory.
+_backend_dir = str(Path(__file__).resolve().parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
+# The asset-insight CLI should remain usable without installing the optional
+# FastAPI server stack. Dispatch before importing server-only dependencies.
+if any(flag in sys.argv for flag in ("--enrich", "--dry-run", "--manifest")):
+    from asset_insights import main as asset_insights_main
+    asset_insights_main()
+    raise SystemExit(0)
+
 from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 
+# Import memory services from main origin
 from services.memory_service import (
     handle_asset_upload,
     handle_save_draft,
     handle_get_draft,
-    handle_get_all_memories,
-    handle_trigger_generation
+    handle_trigger_generation,
+    handle_get_all_memories
 )
+
+# Import all routers
+from app.routes import stt, tts, relive
+from app.routes import generate as generate_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +54,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register all routers
+app.include_router(stt.router)
+app.include_router(tts.router)
+app.include_router(relive.router)
+app.include_router(generate_router.router)
+
+# Mount static folder
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 class DraftPayload(BaseModel):
     id: Optional[str] = None
@@ -99,6 +134,30 @@ def generate_memory(memory_id: str):
     result = handle_trigger_generation(memory_id)
     return result
 
+@app.get("/api/memories")
+def get_all_memories():
+    """
+    Retrieves all memory stories from MongoDB / vault service.
+    """
+    try:
+        memories_list = handle_get_all_memories()
+        return {"status": "success", "count": len(memories_list), "memories": memories_list}
+    except Exception as e:
+        logger.error(f"Error fetching memories: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    # Use config-based host and port if available, else default to 0.0.0.0:8000
+    try:
+        from app.config import settings
+        host = settings.host
+        port = settings.port
+        debug = settings.debug
+    except Exception:
+        host = "0.0.0.0"
+        port = 8000
+        debug = True
+        
+    uvicorn.run(app, host=host, port=port)
