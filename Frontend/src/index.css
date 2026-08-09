@@ -1,0 +1,223 @@
+@import "tailwindcss";
+
+/* ============================================
+   MEMORY — Design System
+   ============================================ */
+
+@theme {
+  /* Solid colors for Tailwind utility generation */
+  --color-memory-base: #0a0a0b;
+  --color-memory-elevated: #141416;
+  --color-memory-surface: #1e1e22;
+  --color-memory-surface-light: #2a2a30;
+  --color-memory-ivory: #f5f0e8;
+  --color-memory-ivory-muted: #a0998c;
+  --color-memory-lavender: #a78bfa;
+  --color-memory-violet: #7c3aed;
+  --color-memory-amber: #f59e0b;
+  --color-memory-orange: #f97316;
+
+  /* Font families */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-memory-base);
+    color: var(--color-memory-ivory);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+}
+
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-memory-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-memory-surface-light);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-memory-lavender);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #f5f0e8 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-warm {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow-violet {
+  box-shadow: 0 0 30px rgba(124, 58, 237, 0.3), 0 0 60px rgba(124, 58, 237, 0.1);
+}
+
+.glow-amber {
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.3), 0 0 60px rgba(245, 158, 11, 0.1);
+}
+
+.glow-text {
+  text-shadow: 0 0 40px rgba(167, 139, 250, 0.4);
+}
+
+.font-display {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes water-wave {
+  0% { transform: translateX(0) translateZ(0) scaleY(1); }
+  50% { transform: translateX(-25%) translateZ(0) scaleY(1.15); }
+  100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
+}
+
+@keyframes liquid-morph {
+  0%, 100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  33% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+  66% {
+    border-radius: 70% 30% 50% 50% / 30% 40% 70% 70%;
+  }
+}
+
+@keyframes caustics-shimmer {
+  0% {
+    filter: blur(40px) brightness(1);
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    filter: blur(50px) brightness(1.25);
+    transform: scale(1.08) rotate(3deg);
+  }
+  100% {
+    filter: blur(40px) brightness(1);
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-liquid-morph {
+  animation: liquid-morph 8s ease-in-out infinite;
+}
+
+.animate-caustics {
+  animation: caustics-shimmer 6s ease-in-out infinite;
+}
+
+.animate-water-wave {
+  animation: water-wave 12s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite;
+}
+
+.liquid-card {
+  position: relative;
+  background: rgba(20, 20, 22, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-card:hover {
+  border-color: rgba(167, 139, 250, 0.3);
+  box-shadow: 0 12px 40px -10px rgba(124, 58, 237, 0.15), 0 0 20px 0 rgba(56, 189, 248, 0.08);
+}
+
+.water-reflection {
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+  transform: scaleY(-1);
+  opacity: 0.18;
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
