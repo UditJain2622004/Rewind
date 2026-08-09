@@ -1,0 +1,98 @@
+{
+  "experience_id": "exp_iimb_hackathon",
+  "title": "IIM Bangalore Hackathon",
+  "contributors": ["rohit", "ankush", "udit"],
+  "moments": [
+    {
+      "moment_id": "mom_01",
+      "order": 1,
+      "label": "Overnight train grind vs. the fresh local",
+      "asset_ids": ["ast_0001", "ast_0002"],
+      "people": ["Rohit", "Ankush", "Udit"],
+      "emotion_tags": ["funny"],
+      "confidence": "high"
+    },
+    {
+      "moment_id": "mom_02",
+      "order": 2,
+      "label": "The IIM B admission prank",
+      "asset_ids": ["ast_0003"],
+      "people": ["Rohit", "Ankush", "Udit"],
+      "emotion_tags": ["funny", "playful"],
+      "confidence": "high"
+    },
+    {
+      "moment_id": "mom_03",
+      "order": 3,
+      "label": "Early campus exploration",
+      "asset_ids": ["ast_0004"],
+      "people": ["Rohit", "Ankush", "Udit"],
+      "emotion_tags": ["excited"],
+      "confidence": "high"
+    },
+    {
+      "moment_id": "mom_04",
+      "order": 4,
+      "label": "The famous water tank from 3 Idiots",
+      "asset_ids": ["ast_0005"],
+      "people": ["Rohit", "Ankush", "Udit"],
+      "emotion_tags": ["nostalgic", "excited"],
+      "confidence": "high"
+    },
+    {
+      "moment_id": "mom_05",
+      "order": 5,
+      "label": "Building begins",
+      "asset_ids": ["ast_0006"],
+      "people": ["Rohit", "Ankush", "Udit"],
+      "emotion_tags": ["focused"],
+      "confidence": "high"
+    },
+    {
+      "moment_id": "mom_06",
+      "order": 6,
+      "label": "Night on the butt chairs, then off to a hotel",
+      "asset_ids": ["ast_0007"],
+      "people": ["Rohit", "Ankush", "Udit"],
+      "emotion_tags": ["nostalgic", "funny"],
+      "confidence": "high"
+    },
+    {
+      "moment_id": "mom_07",
+      "order": 7,
+      "label": "Back on campus, building continues",
+      "asset_ids": ["ast_0008"],
+      "people": ["Rohit", "Ankush", "Udit"],
+      "emotion_tags": ["determined"],
+      "confidence": "high"
+    },
+    {
+      "moment_id": "mom_08",
+      "order": 8,
+      "label": "Rohit completely gone",
+      "asset_ids": ["ast_0009"],
+      "people": ["Rohit"],
+      "emotion_tags": ["funny", "exhausted"],
+      "confidence": "high"
+    },
+    {
+      "moment_id": "mom_09",
+      "order": 9,
+      "label": "No win, one last round at the water tank, goodbye to IIM B",
+      "asset_ids": ["ast_0010"],
+      "people": ["Rohit", "Ankush", "Udit"],
+      "emotion_tags": ["bittersweet", "warm"],
+      "confidence": "medium"
+    }
+  ],
+  "people": [
+    { "name": "Rohit", "asset_ids": ["ast_0001", "ast_0002", "ast_0003", "ast_0004", "ast_0007", "ast_0009", "ast_0010"] },
+    { "name": "Ankush", "asset_ids": ["ast_0001", "ast_0003", "ast_0005", "ast_0008", "ast_0009", "ast_0010"] },
+    { "name": "Udit", "asset_ids": ["ast_0002", "ast_0003", "ast_0006", "ast_0009"] }
+  ],
+  "open_questions": [
+    "Which hotel they stayed at overnight isn't specified in any note",
+    "Not clear whether the team placed anywhere or simply didn't win at all",
+    "Exact time Rohit dozed off (ast_0009) is only approximate"
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "script_id": "iimb_hackathon_relive_v1",
+  "experience_id": "exp_iimb_hackathon",
+  "variant": "relive",
+  "language_code": "en-IN",
+  "speaker": "sumit",
+  "segments": [
+    {
+      "segment_id": "seg_01",
+      "narration_text": "Rohit and Ankush had been up all night, packed into a general coach train, barely awake by the time they got there. Udit strolled in fresh — he'd just come from a few kilometers away.",
+      "asset_ids": [
+        "ast_0001",
+        "ast_0002"
+      ],
+      "caption_text": "Two exhausted travellers, one very fresh local",
+      "mood": "funny"
+    },
+    {
+      "segment_id": "seg_02",
+      "narration_text": "First stop wasn't the hackathon — it was a photo with the IIM B sign, just enough to convince the group chat back home that they'd actually gotten in.",
+      "asset_ids": [
+        "ast_0003"
+      ],
+      "caption_text": "The prank begins",
+      "mood": "funny"
+    },
+    {
+      "segment_id": "seg_03",
+      "narration_text": "They'd arrived early, so before anything else, they just walked the campus.",
+      "asset_ids": [
+        "ast_0004"
+      ],
+      "caption_text": "Exploring campus",
+      "mood": "excited"
+    },
+    {
+      "segment_id": "seg_04",
+      "narration_text": "Straight to the water tank next — the one every 3 Idiots fan recognizes on sight.",
+      "asset_ids": [
+        "ast_0005"
+      ],
+      "caption_text": "The 3 Idiots water tank",
+      "mood": "nostalgic"
+    },
+    {
+      "segment_id": "seg_05",
+      "narration_text": "Then it was time to get to work. Heads down, laptops open, the hackathon clock started.",
+      "asset_ids": [
+        "ast_0006"
+      ],
+      "caption_text": "Building begins",
+      "mood": "neutral"
+    },
+    {
+      "segment_id": "seg_06",
+      "narration_text": "Somewhere past midnight, they snuck in a few photos on the famous butt chairs — before heading off to a hotel, since staying on campus overnight wasn't allowed.",
+      "asset_ids": [
+        "ast_0007"
+      ],
+      "caption_text": "Night shots on the butt chairs",
+      "mood": "nostalgic"
+    },
+    {
+      "segment_id": "seg_07",
+      "narration_text": "Next morning, they were back, picking up right where they left off.",
+      "asset_ids": [
+        "ast_0008"
+      ],
+      "caption_text": "Back to building",
+      "mood": "neutral"
+    },
+    {
+      "segment_id": "seg_08",
+      "narration_text": "By the end, Rohit was completely gone — dozed off mid-hackathon, laptop still open in front of him.",
+      "asset_ids": [
+        "ast_0009"
+      ],
+      "caption_text": "Rohit, absolutely done",
+      "mood": "funny"
+    },
+    {
+      "segment_id": "seg_09",
+      "narration_text": "They didn't end up winning. But before leaving, they took one last round of photos at the water tank, and said their goodbyes to IIM B.",
+      "asset_ids": [
+        "ast_0010"
+      ],
+      "caption_text": "One last look before goodbye",
+      "mood": "warm"
+    }
+  ]
+}
