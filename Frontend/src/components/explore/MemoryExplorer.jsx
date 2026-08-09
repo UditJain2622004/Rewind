@@ -3,11 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, RotateCcw, Sparkles } from 'lucide-react';
 import ExplorePrompt from './ExplorePrompt';
 import ExploreResult from './ExploreResult';
-<<<<<<< HEAD
-import { askMemoryQuestion } from '../../services/api';
-=======
-import { exploreMemory } from '../../services/api';
->>>>>>> origin/main
+import { askMemoryQuestion, exploreMemory } from '../../services/api';
 
 export default function MemoryExplorer({ conversations, suggestedQuestions, memoryId, memoryTitle }) {
   const [results, setResults] = useState([]);
