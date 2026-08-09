@@ -1,15 +1,21 @@
+import os
 import logging
 from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 
+# Import memory services from main origin
 from services.memory_service import (
     handle_asset_upload,
     handle_save_draft,
     handle_get_draft,
     handle_trigger_generation
 )
+
+# Import stt, tts, relive routers from feature branch
+from app.routes import stt, tts, relive
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +35,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register endpoints from feature branch
+app.include_router(stt.router)
+app.include_router(tts.router)
+app.include_router(relive.router)
+
+# Mount static folder
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 class DraftPayload(BaseModel):
     id: Optional[str] = None
@@ -92,4 +108,15 @@ def generate_memory(memory_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    # Use config-based host and port if available, else default to 0.0.0.0:8000
+    try:
+        from app.config import settings
+        host = settings.host
+        port = settings.port
+        debug = settings.debug
+    except Exception:
+        host = "0.0.0.0"
+        port = 8000
+        debug = True
+        
+    uvicorn.run("app.py:app", host=host, port=port, reload=debug)

@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Memory - Relive the IIM Bangalore Hackathon</title>
+    <!-- Import Google Font Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #030206;
+            --surface-color: rgba(255, 255, 255, 0.03);
+            --surface-border: rgba(255, 255, 255, 0.07);
+            --accent-purple: #a855f7;
+            --accent-blue: #3b82f6;
+            --accent-gradient: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 50%, #0a0612 0%, #030206 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--surface-border);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            position: relative;
+            animation: pulse 3s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 15px rgba(168, 85, 247, 0.5); }
+            100% { transform: scale(1); opacity: 0.9; }
+        }
+
+        .logo-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-assemble {
+            padding: 0.6rem 1.2rem;
+            background: var(--accent-gradient);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-assemble:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4);
+        }
+
+        .btn-assemble:active {
+            transform: translateY(0);
+        }
+
+        .btn-assemble.loading {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .main-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (max-width: 968px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Relive Viewer Card */
+        .viewer-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            min-height: 550px;
+        }
+
+        .media-viewport {
+            flex: 1;
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .media-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .media-image.active {
+            opacity: 1;
+        }
+
+        /* Ken Burns Effect */
+        .ken-burns {
+            animation: kenburns-motion 12s infinite alternate linear;
+        }
+
+        @keyframes kenburns-motion {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.08) translate(1%, -1%); }
+        }
+
+        /* Dark overlay for text readability */
+        .viewport-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to top, rgba(3, 2, 6, 0.95) 0%, rgba(3, 2, 6, 0.4) 60%, rgba(3, 2, 6, 0) 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Realtime Captions styling */
+        .caption-container {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            right: 2rem;
+            z-index: 3;
+            text-align: center;
+        }
+
+        .caption-subtitle {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .caption-text {
+            font-size: 1.35rem;
+            font-weight: 500;
+            line-height: 1.5;
+            color: var(--text-primary);
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+            max-width: 800px;
+            margin: 0 auto;
+            transition: all 0.3s ease;
+        }
+
+        /* Controls Panel */
+        .controls-panel {
+            background: rgba(3, 2, 6, 0.7);
+            border-top: 1px solid var(--surface-border);
+            padding: 1.25rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 5;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--accent-gradient);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .timeline-ticks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .timeline-tick {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .controls-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .btn-control {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .btn-control:hover {
+            color: var(--accent-purple);
+        }
+
+        .btn-play-pause {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+
+        .btn-play-pause:hover {
+            background: var(--accent-gradient);
+            border-color: transparent;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .time-display {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .audio-settings {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ambient-music-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Toggle switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 2.25rem;
+            height: 1.25rem;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 0.95rem;
+            width: 0.95rem;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background: var(--accent-gradient);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(1rem);
+        }
+
+        /* Sidebar - Explore Panel */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .sidebar-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .sidebar-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sidebar-title::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-purple);
+        }
+
+        /* Contributors styles */
+        .contributor-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .contributor-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .avatar {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 50%;
+            background: #1e1b4b;
+            color: var(--accent-purple);
+            border: 1.5px solid rgba(168, 85, 247, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .contributor-info {
+            flex: 1;
+        }
+
+        .contributor-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .contributor-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Explore Chat panel */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 290px;
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding-right: 0.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Scrollbar styles */
+        .chat-history::-webkit-scrollbar {
+            width: 4px;
+        }
+        .chat-history::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-history::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
+
+        .chat-bubble {
+            padding: 0.65rem 0.85rem;
+            border-radius: 14px;
+            max-width: 90%;
+            font-size: 0.825rem;
+            line-height: 1.4;
+        }
+
+        .chat-bubble.user {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            color: #f3e8ff;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+
+        .chat-bubble.bot {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 0.6rem 0.8rem;
+            color: white;
+            font-family: inherit;
+            font-size: 0.825rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .btn-send {
+            background: var(--accent-gradient);
+            border: none;
+            border-radius: 12px;
+            width: 2.25rem;
+            height: 2.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-send:hover {
+            transform: scale(1.05);
+        }
+
+        /* Loading & Overlay states */
+        .assembly-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(3, 2, 6, 0.95);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 3.5rem;
+            height: 3.5rem;
+            border: 3px solid rgba(255, 255, 255, 0.05);
+            border-top-color: var(--accent-purple);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .assembly-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .assembly-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-group">
+            <div class="logo-icon"></div>
+            <div class="logo-title">Rewind AI</div>
+        </div>
+        <button class="btn-assemble" id="btn-assemble-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            Assemble Relive
+        </button>
+    </header>
+
+    <div class="main-container">
+        
+        <!-- Center Relive Player -->
+        <div class="viewer-card">
+            
+            <!-- Assembly overlay (shown before assembly starts) -->
+            <div class="assembly-overlay" id="assembly-overlay">
+                <div class="spinner hidden" id="assembly-spinner"></div>
+                <div class="assembly-title" id="assembly-title">Your memory is ready to be Relived</div>
+                <div class="assembly-subtitle" id="assembly-subtitle">Click Assemble to generate the narration scripts and sync the photos timeline of the IIM Bangalore Hackathon.</div>
+                <button class="btn-assemble" id="btn-assemble-center" style="font-size: 1.05rem; padding: 0.8rem 1.8rem;">
+                    Assemble Relive
+                </button>
+            </div>
+
+            <!-- Viewport -->
+            <div class="media-viewport">
+                <div id="image-container" style="width: 100%; height: 100%;">
+                    <!-- Images will be injected here dynamically -->
+                </div>
+                <div class="viewport-overlay"></div>
+                
+                <div class="caption-container">
+                    <div class="caption-subtitle" id="caption-subtitle">Introduction</div>
+                    <div class="caption-text" id="caption-text">Welcome to your hackathon journey. Let's relive the moments.</div>
+                </div>
+            </div>
+
+            <!-- Playback controls -->
+            <div class="controls-panel">
+                <div class="progress-bar-container" id="progress-container">
+                    <div class="progress-bar-fill" id="progress-fill"></div>
+                    <div class="timeline-ticks" id="timeline-ticks"></div>
+                </div>
+                
+                <div class="controls-row">
+                    <div class="control-buttons">
+                        <button class="btn-control" id="btn-prev" title="Previous segment">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+                        </button>
+                        <button class="btn-control btn-play-pause" id="btn-play-pause" title="Play / Pause">
+                            <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            <svg id="pause-icon" class="hidden" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                        </button>
+                        <button class="btn-control" id="btn-next" title="Next segment">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                        </button>
+                        <div class="time-display" id="time-display">0:00 / 0:00</div>
+                    </div>
+
+                    <div class="audio-settings">
+                        <span class="ambient-music-label">Ambient Music</span>
+                        <label class="switch">
+                            <input type="checkbox" id="music-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar (Contributors & Q&A) -->
+        <div class="sidebar">
+            
+            <!-- Contributors list -->
+            <div class="sidebar-card">
+                <div class="sidebar-title">Memory Contributors</div>
+                <div class="contributor-list" id="contributor-list">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Explore Chat -->
+            <div class="sidebar-card" style="flex: 1;">
+                <div class="sidebar-title">Explore this Memory</div>
+                <div class="chat-container">
+                    <div class="chat-history" id="chat-history">
+                        <div class="chat-bubble bot">
+                            Hi! Ask me anything about this trip, like the IIM sign prank, visiting the 3 Idiots water tank, or when Rohit slept!
+                        </div>
+                    </div>
+                    <div class="chat-input-row">
+                        <input type="text" class="chat-input" id="chat-input" placeholder="Ask a question..." autocomplete="off">
+                        <button class="btn-send" id="btn-send-chat">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Hidden elements for audio management -->
+    <audio id="narration-player" style="display: none;"></audio>
+    <audio id="ambient-player" loop style="display: none;" src="https://assets.mixkit.co/music/preview/mixkit-ambient-dream-117.mp3"></audio>
+
+    <script>
+        // State variables
+        let script = null;
+        let assetsManifest = {};
+        let ttsOutput = null;
+        
+        let segments = [];
+        let currentSegmentIndex = 0;
+        let isPlaying = false;
+        
+        // Element references
+        const btnAssembleHeader = document.getElementById('btn-assemble-header');
+        const btnAssembleCenter = document.getElementById('btn-assemble-center');
+        const assemblyOverlay = document.getElementById('assembly-overlay');
+        const assemblySpinner = document.getElementById('assembly-spinner');
+        const assemblyTitle = document.getElementById('assembly-title');
+        const assemblySubtitle = document.getElementById('assembly-subtitle');
+        
+        const imageContainer = document.getElementById('image-container');
+        const captionSubtitle = document.getElementById('caption-subtitle');
+        const captionText = document.getElementById('caption-text');
+        
+        const progressFill = document.getElementById('progress-fill');
+        const progressContainer = document.getElementById('progress-container');
+        const timelineTicks = document.getElementById('timeline-ticks');
+        const timeDisplay = document.getElementById('time-display');
+        
+        const btnPlayPause = document.getElementById('btn-play-pause');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+        const musicToggle = document.getElementById('music-toggle');
+        
+        const contributorList = document.getElementById('contributor-list');
+        const chatHistory = document.getElementById('chat-history');
+        const chatInput = document.getElementById('chat-input');
+        const btnSendChat = document.getElementById('btn-send-chat');
+        
+        const narrationPlayer = document.getElementById('narration-player');
+        const ambientPlayer = document.getElementById('ambient-player');
+        
+        // Set ambient volume low
+        ambientPlayer.volume = 0.15;
+
+        // On Load
+        window.addEventListener('load', async () => {
+            await fetchReliveData();
+            setupEventListeners();
+        });
+
+        // Fetch Timeline Data
+        async function fetchReliveData() {
+            try {
+                const response = await fetch('/api/relive-data');
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    script = data.script;
+                    
+                    // Convert manifest array to easy lookup dictionary
+                    assetsManifest = {};
+                    if (data.assets_manifest) {
+                        data.assets_manifest.forEach(asset => {
+                            assetsManifest[asset.asset_id] = asset;
+                        });
+                    }
+
+                    // Populate contributors
+                    populateContributors(script.contributors);
+
+                    // Check if TTS has been compiled
+                    if (data.tts_output && data.tts_output.audio_segments && data.tts_output.audio_segments.length > 0) {
+                        ttsOutput = data.tts_output;
+                        buildTimeline();
+                        assemblyOverlay.classList.add('hidden');
+                        btnAssembleHeader.innerText = "Re-Assemble Relive";
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading Relive data", err);
+            }
+        }
+
+        // Populate contributors UI
+        function populateContributors(contributors) {
+            contributorList.innerHTML = '';
+            if (!contributors) return;
+            
+            contributors.forEach(username => {
+                const initial = username.charAt(0).toUpperCase();
+                const cleanName = username.charAt(0).toUpperCase() + username.slice(1);
+                
+                const item = document.createElement('div');
+                item.className = 'contributor-item';
+                item.innerHTML = `
+                    <div class="avatar">${initial}</div>
+                    <div class="contributor-info">
+                        <div class="contributor-name">${cleanName}</div>
+                        <div class="contributor-role">Co-creator</div>
+                    </div>
+                `;
+                contributorList.appendChild(item);
+            });
+        }
+
+        // Assemble Media Trigger
+        async function triggerAssembly() {
+            setAssemblyLoading(true);
+            try {
+                const response = await fetch('/api/assemble-relive', { method: 'POST' });
+                if (response.ok) {
+                    const output = await response.json();
+                    ttsOutput = output;
+                    
+                    // Reload relive data
+                    await fetchReliveData();
+                    
+                    assemblyOverlay.classList.add('hidden');
+                    btnAssembleHeader.innerText = "Re-Assemble Relive";
+                    
+                    // Auto-start play
+                    playSegment(0);
+                } else {
+                    alert("Media compilation failed.");
+                    setAssemblyLoading(false);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred during assembly.");
+                setAssemblyLoading(false);
+            }
+        }
+
+        function setAssemblyLoading(loading) {
+            if (loading) {
+                btnAssembleCenter.classList.add('hidden');
+                assemblySpinner.classList.remove('hidden');
+                assemblyTitle.innerText = "Assembling Relive Capsule...";
+                assemblySubtitle.innerText = "Synthesizing AI voice narrations, estimating photo pacing markers, and calibrating segment dynamics. Please wait...";
+                btnAssembleHeader.classList.add('loading');
+                btnAssembleHeader.innerText = "Assembling...";
+            } else {
+                btnAssembleCenter.classList.remove('hidden');
+                assemblySpinner.classList.add('hidden');
+                assemblyTitle.innerText = "Your memory is ready to be Relived";
+                assemblySubtitle.innerText = "Click Assemble to generate the narration scripts and sync the photos timeline of the IIM Bangalore Hackathon.";
+                btnAssembleHeader.classList.remove('loading');
+                btnAssembleHeader.innerText = "Assemble Relive";
+            }
+        }
+
+        // Build segment and image elements in player
+        function buildTimeline() {
+            segments = [];
+            imageContainer.innerHTML = '';
+            timelineTicks.innerHTML = '';
+            
+            if (!script || !ttsOutput) return;
+
+            const ttsSegments = {};
+            ttsOutput.audio_segments.forEach(seg => {
+                ttsSegments[seg.segment_id] = seg;
+            });
+
+            let totalDuration = 0;
+            
+            script.segments.forEach((seg, idx) => {
+                const ttsInfo = ttsSegments[seg.segment_id];
+                if (!ttsInfo) return;
+
+                const duration = ttsInfo.duration_sec;
+                const segmentObj = {
+                    ...seg,
+                    audio_url: ttsInfo.audio_url,
+                    duration_sec: duration,
+                    start_time: totalDuration
+                };
+                
+                segments.push(segmentObj);
+                totalDuration += duration;
+                
+                // Load images for segment
+                seg.asset_ids.forEach((assetId, assetIdx) => {
+                    const asset = assetsManifest[assetId];
+                    if (asset && asset.type === 'image') {
+                        const img = document.createElement('img');
+                        img.className = 'media-image';
+                        img.id = `img-${seg.segment_id}-${assetId}`;
+                        img.src = asset.file_url;
+                        img.alt = asset.user_caption || "Hackathon Memory Photo";
+                        imageContainer.appendChild(img);
+                    }
+                });
+            });
+
+            // Draw ticks on progress bar
+            let accumulatedTime = 0;
+            segments.forEach((seg, idx) => {
+                if (idx === 0) return;
+                accumulatedTime += segments[idx-1].duration_sec;
+                const pct = (accumulatedTime / totalDuration) * 100;
+                
+                const tick = document.createElement('div');
+                tick.className = 'timeline-tick';
+                tick.style.left = `${pct}%`;
+                timelineTicks.appendChild(tick);
+            });
+
+            // Save total duration
+            segments.totalDuration = totalDuration;
+            updateTimeDisplay(0, totalDuration);
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            btnAssembleHeader.addEventListener('click', triggerAssembly);
+            btnAssembleCenter.addEventListener('click', triggerAssembly);
+            
+            btnPlayPause.addEventListener('click', togglePlayPause);
+            btnPrev.addEventListener('click', prevSegment);
+            btnNext.addEventListener('click', nextSegment);
+            
+            // Audio events
+            narrationPlayer.addEventListener('timeupdate', onAudioTimeUpdate);
+            narrationPlayer.addEventListener('ended', onSegmentEnded);
+            
+            // Ambient Music Toggle
+            musicToggle.addEventListener('change', () => {
+                if (musicToggle.checked) {
+                    if (isPlaying) ambientPlayer.play();
+                } else {
+                    ambientPlayer.pause();
+                }
+            });
+
+            // Chat Events
+            btnSendChat.addEventListener('click', submitQuestion);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') submitQuestion();
+            });
+
+            // Clicking progress bar
+            progressContainer.addEventListener('click', (e) => {
+                if (!segments.length) return;
+                const rect = progressContainer.getBoundingClientRect();
+                const pct = (e.clientX - rect.left) / rect.width;
+                const targetTime = pct * segments.totalDuration;
+                
+                // Find matching segment
+                let accumulated = 0;
+                for (let i = 0; i < segments.length; i++) {
+                    const dur = segments[i].duration_sec;
+                    if (targetTime <= accumulated + dur) {
+                        currentSegmentIndex = i;
+                        playSegment(i, targetTime - accumulated);
+                        break;
+                    }
+                    accumulated += dur;
+                }
+            });
+        }
+
+        // Playback Logic
+        function playSegment(index, offset = 0) {
+            if (index < 0 || index >= segments.length) return;
+            currentSegmentIndex = index;
+            const segment = segments[index];
+
+            // Configure source with cache buster
+            narrationPlayer.src = segment.audio_url + "?t=" + new Date().getTime();
+            narrationPlayer.currentTime = offset;
+            
+            // Set captions
+            captionSubtitle.innerText = segment.caption_text || `Segment ${index + 1}`;
+            captionText.innerText = segment.narration_text;
+
+            // Trigger play
+            if (isPlaying) {
+                narrationPlayer.play().catch(e => console.log(e));
+                if (musicToggle.checked) ambientPlayer.play().catch(e => console.log(e));
+            }
+
+            // Sync visual images
+            syncImagesForSegment(segment, offset);
+            updateProgressBar();
+        }
+
+        function syncImagesForSegment(segment, offset) {
+            // Deactivate all images
+            document.querySelectorAll('.media-image').forEach(img => {
+                img.classList.remove('active', 'ken-burns');
+            });
+
+            const assetIds = segment.asset_ids;
+            if (!assetIds || assetIds.length === 0) return;
+
+            // Find current active image based on time offset in segment
+            let activeAssetId = assetIds[0];
+            if (assetIds.length > 1) {
+                const ratio = offset / segment.duration_sec;
+                const imageIndex = Math.min(assetIds.length - 1, Math.floor(ratio * assetIds.length));
+                activeAssetId = assetIds[imageIndex];
+            }
+
+            const imgEl = document.getElementById(`img-${segment.segment_id}-${activeAssetId}`);
+            if (imgEl) {
+                imgEl.classList.add('active', 'ken-burns');
+            }
+        }
+
+        function togglePlayPause() {
+            if (!segments.length) return;
+            
+            if (isPlaying) {
+                narrationPlayer.pause();
+                ambientPlayer.pause();
+                isPlaying = false;
+                showPlayState(false);
+            } else {
+                isPlaying = true;
+                // If ended or not set, play current
+                if (!narrationPlayer.src) {
+                    playSegment(currentSegmentIndex);
+                } else {
+                    narrationPlayer.play().catch(e => console.log(e));
+                    if (musicToggle.checked) ambientPlayer.play().catch(e => console.log(e));
+                }
+                showPlayState(true);
+            }
+        }
+
+        function showPlayState(playing) {
+            if (playing) {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+            } else {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+            }
+        }
+
+        function prevSegment() {
+            if (currentSegmentIndex > 0) {
+                playSegment(currentSegmentIndex - 1);
+            } else {
+                playSegment(0);
+            }
+        }
+
+        function nextSegment() {
+            if (currentSegmentIndex < segments.length - 1) {
+                playSegment(currentSegmentIndex + 1);
+            } else {
+                // Rewind to beginning and pause
+                isPlaying = false;
+                showPlayState(false);
+                playSegment(0);
+            }
+        }
+
+        function onSegmentEnded() {
+            nextSegment();
+        }
+
+        function onAudioTimeUpdate() {
+            const segment = segments[currentSegmentIndex];
+            if (!segment) return;
+            
+            const offset = narrationPlayer.currentTime;
+            
+            // Sync images if they fade mid-way
+            syncImagesForSegment(segment, offset);
+            
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            if (!segments.length) return;
+            
+            const segment = segments[currentSegmentIndex];
+            const currentTotalTime = segment.start_time + narrationPlayer.currentTime;
+            const pct = (currentTotalTime / segments.totalDuration) * 100;
+            
+            progressFill.style.width = `${pct}%`;
+            updateTimeDisplay(currentTotalTime, segments.totalDuration);
+        }
+
+        function updateTimeDisplay(current, total) {
+            const formatTime = (secs) => {
+                const m = Math.floor(secs / 60);
+                const s = Math.floor(secs % 60).toString().padStart(2, '0');
+                return `${m}:${s}`;
+            };
+            timeDisplay.innerText = `${formatTime(current)} / ${formatTime(total)}`;
+        }
+
+        // Q&A Explore Panel Submission
+        async function submitQuestion() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            // Clear input
+            chatInput.value = '';
+
+            // Render User Chat Bubble
+            appendChatBubble(text, 'user');
+            
+            // Auto scroll chat log
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            try {
+                // Fetch response from server Q&A
+                const response = await fetch(`/api/explore?query=${encodeURIComponent(text)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    appendChatBubble(data.answer, 'bot');
+                } else {
+                    appendChatBubble("Sorry, I could not answer that right now.", 'bot');
+                }
+            } catch (err) {
+                console.error(err);
+                appendChatBubble("Network connection error.", 'bot');
+            }
+            
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function appendChatBubble(msg, sender) {
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${sender}`;
+            bubble.innerText = msg;
+            chatHistory.appendChild(bubble);
+        }
+    </script>
+</body>
+</html>
