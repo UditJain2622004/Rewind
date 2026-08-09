@@ -173,6 +173,7 @@ class VideoService:
             file_path = os.path.join(audio_dir, filename)
             duration_sec = 0.0
 
+            current_speaker = segment.get("speaker", speaker)
             if not has_api_key:
                 logger.warning("No Sarvam API key — generating mock WAV for %s.", segment_id)
                 duration_sec = self._create_mock_wav(file_path, narration)
@@ -181,7 +182,7 @@ class VideoService:
                     import base64
                     b64, _ = await self.sarvam_service.text_to_speech(
                         text=narration,
-                        speaker=speaker,
+                        speaker=current_speaker,
                         pace=mapped["pace"],
                         temperature=mapped["temperature"],
                     )

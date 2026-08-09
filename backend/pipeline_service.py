@@ -120,18 +120,32 @@ def _step_memory(enriched_path: Path, memory_json_path: Path, memory_md_path: Pa
 
 def _step_scripts(memory_json_path: Path, memory_md_path: Path, scripts_dir: Path, llm_model: str) -> list[Path]:
     """Step 4 — Generate all script variants."""
-    from script_generation import generate_all
+    from script_generation import select_script_variant, generate_script, SPEAKER_MAP
+    import json
     scripts_dir.mkdir(parents=True, exist_ok=True)
-    logger.info("Pipeline step 4: generate_all scripts → %s", scripts_dir)
-    return generate_all(
-        memory_json_path=str(memory_json_path),
-        memory_md_path=str(memory_md_path),
-        output_dir=str(scripts_dir),
+    
+    memory_data = json.loads(memory_json_path.read_text(encoding="utf-8"))
+    narrative_data = memory_md_path.read_text(encoding="utf-8") if memory_md_path.exists() else ""
+
+    logger.info("Pipeline step 4a: AI selecting best script variant")
+    best_variant = select_script_variant(memory_data, narrative_data, model=llm_model)
+    mapped_speaker = SPEAKER_MAP.get(best_variant, "shubh").split(",")[0]
+    
+    logger.info("Pipeline step 4b: Generating '%s' script", best_variant)
+    script_result = generate_script(
+        memory=memory_data,
+        narrative=narrative_data,
+        variant=best_variant,
         model=llm_model,
         language_code="en-IN",
-        speaker="shubh",
+        speaker=mapped_speaker,
         max_tokens=3500,
     )
+    
+    script_path = scripts_dir / f"{best_variant}_v1.json"
+    script_path.write_text(json.dumps(script_result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    
+    return [script_path]
 
 
 # ---------------------------------------------------------------------------

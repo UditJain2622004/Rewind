@@ -12,3 +12,12 @@ __pycache__/
 .venv/
 venv/
 .memory-assets/
+
+backend/static/
+backend/test_audio_output/
+backend/test_single_output/
+scripts/
+test_audio_output/
+test_single_output/
+test_single_output2/
+village_elder_v1.json

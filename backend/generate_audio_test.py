@@ -229,9 +229,10 @@ def generate_audio_from_script(
             continue
 
         mapped = MOOD_TTS_MAP.get(mood, {"pace": 1.0, "temperature": 0.6})
+        current_speaker = seg.get("speaker", default_speaker)
         wav_path = out_dir / f"{seg_id}.wav"
 
-        print(f"[{idx}/{len(segments)}] {seg_id} (Mood: {mood}, Pace: {mapped['pace']}, Temp: {mapped['temperature']})")
+        print(f"[{idx}/{len(segments)}] {seg_id} (Speaker: {current_speaker}, Mood: {mood}, Pace: {mapped['pace']}, Temp: {mapped['temperature']})")
         print(f"     Text: \"{text[:70]}{'...' if len(text) > 70 else ''}\"")
 
         duration = 0.0
@@ -240,7 +241,7 @@ def generate_audio_from_script(
                 audio_bytes = call_sarvam_tts(
                     text=text,
                     api_key=resolved_api_key,
-                    speaker=default_speaker,
+                    speaker=current_speaker,
                     language_code=language_code,
                     pace=mapped["pace"],
                     temperature=mapped["temperature"]

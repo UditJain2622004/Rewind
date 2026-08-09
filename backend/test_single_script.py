@@ -23,7 +23,7 @@ backend_dir = Path(__file__).resolve().parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-from script_generation import generate_script, SCRIPT_VARIANTS
+from script_generation import generate_script, SCRIPT_VARIANTS, SPEAKER_MAP, select_script_variant
 from generate_audio_test import generate_audio_from_script, load_env_api_key
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -36,9 +36,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--variant", "-v",
-        default="roast",
         choices=list(SCRIPT_VARIANTS),
-        help="Script variant type to generate (default: roast)"
+        help="Script variant type to generate (overrides auto-selection)"
+    )
+    parser.add_argument(
+        "--auto-variant",
+        action="store_true",
+        help="Use AI to automatically select the best script variant for the memory"
     )
     parser.add_argument(
         "--memory-json", "-j",
@@ -95,24 +99,31 @@ def main() -> None:
     if api_key:
         os.environ["SARVAM_API_KEY"] = api_key
 
-    # Step 1: Generate Script Variant
-    print(f"Step 1/2: Generating '{args.variant}' script using Sarvam LLM ({args.model})...")
     memory_data = json.loads(mem_json_path.read_text(encoding="utf-8"))
     narrative_data = mem_md_path.read_text(encoding="utf-8") if mem_md_path.exists() else ""
 
-    speaker = args.speaker or ("varun" if args.variant == "village_elder" else "shubh")
+    variant = args.variant
+    if args.auto_variant or not variant:
+        print(f"Step 0: AI auto-selecting best script variant based on memory...")
+        variant = select_script_variant(memory_data, narrative_data, model=args.model)
+        print(f"   [OK] Selected variant: {variant}")
+
+    speaker = args.speaker or SPEAKER_MAP.get(variant, "shubh").split(",")[0]
+
+    # Step 1: Generate Script Variant
+    print(f"\nStep 1/2: Generating '{variant}' script using Sarvam LLM ({args.model})...")
 
     script_result = generate_script(
         memory=memory_data,
         narrative=narrative_data,
-        variant=args.variant,
+        variant=variant,
         model=args.model,
         language_code="en-IN",
         speaker=speaker,
         max_tokens=3500
     )
 
-    script_filename = f"{args.variant}_v1.json"
+    script_filename = f"{variant}_v1.json"
     script_file_path = output_dir / script_filename
     script_file_path.write_text(json.dumps(script_result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 

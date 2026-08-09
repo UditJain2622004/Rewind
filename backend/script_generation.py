@@ -18,6 +18,17 @@ SCRIPT_VARIANTS = (
     "couple_bickering", "this_or_that", "expectation_vs_reality",
     "grwm_storytime", "hot_take_debate", "rate_out_of_ten",
 )
+SPEAKER_MAP = {
+    "roast": "shubh",
+    "roast_commentary": "amit",
+    "village_elder": "varun",
+    "couple_bickering": "neha,rahul",  # multi-speaker
+    "this_or_that": "tarun",
+    "expectation_vs_reality": "shreya",
+    "grwm_storytime": "suhani",
+    "hot_take_debate": "kabir",
+    "rate_out_of_ten": "ritu"
+}
 
 
 def _client():
@@ -123,6 +134,8 @@ def _normalise_script(
         segment["asset_ids"] = segment.get("asset_ids") if isinstance(segment.get("asset_ids"), list) else fallback_assets
         segment["caption_text"] = _remove_em_dashes(str(segment.get("caption_text") or narration[:80]))
         segment["mood"] = str(segment.get("mood") or "neutral")
+        if "speaker" in segment:
+            segment["speaker"] = str(segment["speaker"])
         output.append(segment)
     if not any(segment["narration_text"].strip() for segment in output):
         raise RuntimeError(f"Sarvam returned a {variant} script with no narration text")
@@ -292,6 +305,7 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             "TTS and JSON requirements:\n"
             "- Return JSON only, as an object with a segments array.\n"
             "- Each segment needs narration_text, asset_ids, caption_text, and mood.\n"
+            "- For multiple speakers (e.g. couple bickering), include a 'speaker' field in each segment with their name (e.g., 'neha', 'rahul').\n"
             "- mood must be one of: excited, warm, nostalgic, funny, somber, neutral. Match it to the spoken line.\n"
             "- caption_text must be short, readable on screen, and not merely repeat the narration.\n"
             "- Do not use an em dash anywhere. If a pause is needed, use a comma, a full stop, or an ellipsis instead."
@@ -301,6 +315,36 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             f"\n\nMemory narrative:\n{narrative}"
         )},
     ]
+
+
+def select_script_variant(memory: dict[str, Any], narrative: str, model: str = "sarvam-105b") -> str:
+    """Uses LLM to pick the most suitable script variant based on memory context."""
+    client = _client()
+    messages = [
+        {"role": "system", "content": (
+            "You are a script selector. Based on the provided memory facts, choose exactly ONE script format that "
+            "would be the funniest and most engaging fit.\n\n"
+            f"Options: {', '.join(SCRIPT_VARIANTS)}\n\n"
+            "Respond ONLY with the name of the variant, nothing else."
+        )},
+        {"role": "user", "content": f"Memory:\n{narrative}"}
+    ]
+    try:
+        response = client.chat.completions(
+            messages=messages,
+            model=model,
+            temperature=0.7,
+            max_tokens=20,
+        )
+        content = _response_text(response).strip().lower()
+        # Clean up in case it replied with a sentence
+        for v in SCRIPT_VARIANTS:
+            if v in content:
+                return v
+    except Exception as e:
+        LOGGER.warning(f"select_script_variant failed: {e}. Defaulting to roast.")
+    
+    return "roast"
 
 
 def generate_script(
@@ -362,8 +406,9 @@ def generate_all(
     directory = Path(output_dir)
     paths: list[Path] = []
     for variant in SCRIPT_VARIANTS:
-        selected_speaker = village_elder_speaker if variant == "village_elder" else speaker
-        script = generate_script(memory, narrative, variant, model, language_code, selected_speaker, max_tokens)
+        # Use SPEAKER_MAP to get the default speaker(s), split in case it's a comma-separated list of multi-speakers
+        mapped_speaker = SPEAKER_MAP.get(variant, speaker).split(",")[0]
+        script = generate_script(memory, narrative, variant, model, language_code, mapped_speaker, max_tokens)
         path = directory / f"{variant}_v1.json"
         _atomic_write(path, json.dumps(script, ensure_ascii=False, indent=2) + "\n")
         paths.append(path)
@@ -388,8 +433,8 @@ def main() -> None:
     narrative = Path(args.memory_md).read_text(encoding="utf-8")
     paths: list[Path] = []
     for variant in args.variants:
-        selected_speaker = args.village_elder_speaker if variant == "village_elder" else args.speaker
-        script = generate_script(memory, narrative, variant, args.model, args.language_code, selected_speaker, args.max_tokens)
+        mapped_speaker = SPEAKER_MAP.get(variant, args.speaker).split(",")[0]
+        script = generate_script(memory, narrative, variant, args.model, args.language_code, mapped_speaker, args.max_tokens)
         path = Path(args.output_dir) / f"{variant}_v1.json"
         _atomic_write(path, json.dumps(script, ensure_ascii=False, indent=2) + "\n")
         paths.append(path)
