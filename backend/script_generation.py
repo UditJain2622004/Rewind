@@ -13,7 +13,10 @@ from typing import Any
 
 
 LOGGER = logging.getLogger("ai_memory.script_generation")
-SCRIPT_VARIANTS = ("relive", "share", "viral", "reaction", "trailer", "roast")
+SCRIPT_VARIANTS = (
+    "relive", "share", "viral", "reaction", "trailer", "roast",
+    "outsider_reaction", "roast_commentary", "village_elder",
+)
 
 
 def _client():
@@ -198,6 +201,42 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
 - Use spoken reactions and clean punchlines, not long written comedy paragraphs.
 - Example rhythm only, do not copy: "We brought ambition. Sleep was apparently optional."
 - End by making the imperfect outcome feel like the reason the memory is worth sharing.""",
+        "outsider_reaction": """OUTSIDER REACTION PLAYBOOK:
+- Narrate as a completely separate observer watching this group from the outside.
+- Do not use I, me, we, our, or us as if the narrator participated in the experience.
+- Open with the observer discovering the most unbelievable supported fact.
+- React in real time: notice a detail, form an opinion, then immediately escalate it with the next detail.
+- Make the group look hilariously committed, tired, confused, or overconfident only when the evidence supports it.
+- Use punchy outsider commentary such as "these people arrived with a plan" or "the plan did not survive the morning".
+- Contrast what normal people would do with what this group actually did, without inventing the normal version as fact.
+- Keep the observer's tone confident, incredulous, and entertained, like a live reaction cut over the footage.
+- Every few beats needs a reaction payoff, not just a description of what happened.
+- Example rhythm only, do not copy: "From the outside, this looked organised. Then the sleeping arrangement appeared."
+- End with the observer delivering a final verdict on the group and the strangely successful memory.""",
+        "roast_commentary": """ROAST COMMENTARY PLAYBOOK:
+- Write as an external comedian roasting the group, not as a member of the group.
+- Use third person for the people and situation. Do not say I did this, we did this, or my friends did this.
+- The narrator has permission to be blunt, dramatic, sarcastic, and very funny about the documented chaos.
+- Roast decisions, timing, exhaustion, overconfidence, and the gap between ambition and reality.
+- Do not roast protected traits, appearance, private pain, or anything not supported by the memory.
+- Begin with a sharp thesis about what kind of people would voluntarily create this story.
+- Give every factual beat a comic angle, then escalate to the next more ridiculous beat.
+- Use fake seriousness, mock analysis, courtroom language, sports commentary, or documentary authority for contrast.
+- Include at least one callback to the opening thesis and one line that sounds like a shareable quote.
+- Example rhythm only, do not copy: "The mission was innovation. The evidence suggests advanced sleep deprivation."
+- Finish with a verdict that is savage in wording but affectionate in spirit.""",
+        "village_elder": """VILLAGE ELDER PLAYBOOK:
+- Narrate as an intense, ancient village elder telling a hilarious cautionary tale to the younger generation.
+- This is an original character voice, not an imitation of any real person or comedian.
+- Use a grave, commanding tone for ordinary facts. The comedy comes from the mismatch between seriousness and reality.
+- Speak like the elder has witnessed many journeys and cannot believe this particular group survived its own planning.
+- Use dramatic wisdom and sarcastic observations: "In my time, we called this a bad idea" or "the elders had warned them".
+- Treat the overnight travel, ambitious hackathon, ridiculous exhaustion, and final outcome like epic folklore.
+- Build intensity with repetition, pauses, declarations, and short punchy sentences that TTS can perform dramatically.
+- Let the elder praise courage while clearly mocking the foolish choices that produced it.
+- Include a moral or proverb-like line near the end, but make the moral funny and specific to the real memory.
+- Example rhythm only, do not copy: "And so they entered the night without sleep. The night entered them instead."
+- End with a thunderous final verdict that sounds wise, sarcastic, and completely unforgettable.""",
     }
     if variant not in playbooks:
         raise ValueError(f"Unknown script variant: {variant}")
@@ -278,7 +317,7 @@ def generate_script(
         response = client.chat.completions(
             messages=messages,
             model=model,
-            temperature=0.45 if variant == "relive" else 0.75 if variant in {"viral", "reaction"} else 0.6,
+            temperature=0.45 if variant == "relive" else 0.8 if variant in {"viral", "reaction", "outsider_reaction", "roast_commentary", "village_elder"} else 0.6,
             max_tokens=max_tokens,
         )
         content = _response_text(response)
