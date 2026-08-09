@@ -357,13 +357,15 @@ def generate_all(
     language_code: str,
     speaker: str,
     max_tokens: int,
- ) -> list[Path]:
+    village_elder_speaker: str = "varun",
+) -> list[Path]:
     memory = json.loads(Path(memory_json_path).read_text(encoding="utf-8"))
     narrative = Path(memory_md_path).read_text(encoding="utf-8")
     directory = Path(output_dir)
     paths: list[Path] = []
     for variant in SCRIPT_VARIANTS:
-        script = generate_script(memory, narrative, variant, model, language_code, speaker, max_tokens)
+        selected_speaker = village_elder_speaker if variant == "village_elder" else speaker
+        script = generate_script(memory, narrative, variant, model, language_code, selected_speaker, max_tokens)
         path = directory / f"{variant}_v1.json"
         _atomic_write(path, json.dumps(script, ensure_ascii=False, indent=2) + "\n")
         paths.append(path)
@@ -378,6 +380,7 @@ def main() -> None:
     parser.add_argument("--model", default="sarvam-105b")
     parser.add_argument("--language-code", default="en-IN")
     parser.add_argument("--speaker", default="shubh")
+    parser.add_argument("--village-elder-speaker", default="varun")
     parser.add_argument("--max-tokens", type=int, default=3500)
     parser.add_argument("--variants", nargs="+", choices=SCRIPT_VARIANTS, default=list(SCRIPT_VARIANTS))
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
@@ -387,7 +390,8 @@ def main() -> None:
     narrative = Path(args.memory_md).read_text(encoding="utf-8")
     paths: list[Path] = []
     for variant in args.variants:
-        script = generate_script(memory, narrative, variant, args.model, args.language_code, args.speaker, args.max_tokens)
+        selected_speaker = args.village_elder_speaker if variant == "village_elder" else args.speaker
+        script = generate_script(memory, narrative, variant, args.model, args.language_code, selected_speaker, args.max_tokens)
         path = Path(args.output_dir) / f"{variant}_v1.json"
         _atomic_write(path, json.dumps(script, ensure_ascii=False, indent=2) + "\n")
         paths.append(path)
