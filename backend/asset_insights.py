@@ -119,8 +119,14 @@ def _image_insight(asset: dict[str, Any], workdir: Path) -> str:
     return "Sarvam Vision returned no usable photo insight."
 
 
-def _voice_batch_insights(assets: list[dict[str, Any]], workdir: Path) -> dict[str, str]:
-    """Transcribe all voice notes in one concurrent-friendly Saaras job."""
+def _voice_batch_insights(
+    assets: list[dict[str, Any]], workdir: Path, multiple_speakers: bool = False
+) -> dict[str, str]:
+    """Transcribe all voice notes in one Saaras job.
+
+    ``multiple_speakers`` enables Saaras diarization.  The returned insight
+    remains plain text; any speaker labels supplied by Saaras are preserved.
+    """
     if not assets:
         return {}
     paths: list[Path] = []
@@ -134,7 +140,7 @@ def _voice_batch_insights(assets: list[dict[str, Any]], workdir: Path) -> dict[s
     job = client.speech_to_text_job.create_job(
         model="saaras:v3",
         mode="transcribe",
-        with_diarization=False,
+        with_diarization=multiple_speakers,
     )
     job.upload_files(file_paths=[str(path) for path in paths])
     job.start()
@@ -146,7 +152,7 @@ def _voice_batch_insights(assets: list[dict[str, Any]], workdir: Path) -> dict[s
     by_name: dict[str, str] = {}
     for result_file in result_dir.glob("*.json"):
         payload = json.loads(result_file.read_text(encoding="utf-8"))
-        transcript = payload.get("transcript", "") if isinstance(payload, dict) else ""
+        transcript = _transcript_from_payload(payload, multiple_speakers)
         # SDK output names are commonly based on input names; the numeric form
         # is also supported by mapping in upload order below.
         by_name[result_file.stem] = transcript
@@ -157,9 +163,34 @@ def _voice_batch_insights(assets: list[dict[str, Any]], workdir: Path) -> dict[s
         direct = by_name.get(asset["asset_id"])
         if direct is None and index < len(result_files):
             payload = json.loads(result_files[index].read_text(encoding="utf-8"))
-            direct = payload.get("transcript", "") if isinstance(payload, dict) else ""
+            direct = _transcript_from_payload(payload, multiple_speakers)
         insights[asset["asset_id"]] = direct or "Saaras returned no transcript."
     return insights
+
+
+def _transcript_from_payload(payload: Any, multiple_speakers: bool = False) -> str:
+    """Extract a readable transcript, retaining diarization when available."""
+    if not isinstance(payload, dict):
+        return ""
+    if multiple_speakers:
+        for key in ("diarized_transcript", "speaker_transcript", "segments"):
+            value = payload.get(key)
+            if isinstance(value, list) and value:
+                lines: list[str] = []
+                for item in value:
+                    if isinstance(item, dict):
+                        speaker = item.get("speaker") or item.get("speaker_id") or "Speaker"
+                        text = item.get("text") or item.get("transcript") or ""
+                        if text:
+                            lines.append(f"{speaker}: {text}")
+                    elif item:
+                        lines.append(str(item))
+                if lines:
+                    return "\n".join(lines)
+            elif isinstance(value, str) and value.strip():
+                return value.strip()
+    value = payload.get("transcript", "")
+    return value.strip() if isinstance(value, str) else str(value or "")
 
 
 def _markdown_entry(asset: dict[str, Any], body: str) -> str:
@@ -184,6 +215,7 @@ def build_asset_insights(
     output_path: str | Path = "asset_insights.md",
     max_workers: int = 4,
     dry_run: bool = False,
+    multiple_speakers: bool = False,
 ) -> Path:
     """Process independent assets concurrently and write ordered markdown."""
     assets = load_manifest(manifest_path)
@@ -209,7 +241,10 @@ def build_asset_insights(
                     pool.submit(_image_insight, asset, workdir): asset
                     for asset in images
                 }
-                voice_future = pool.submit(_voice_batch_insights, voices, workdir) if voices else None
+                voice_future = (
+                    pool.submit(_voice_batch_insights, voices, workdir, multiple_speakers)
+                    if voices else None
+                )
                 for future in as_completed(futures):
                     asset = futures[future]
                     try:
@@ -253,7 +288,21 @@ def build_asset_insights(
 
 def _parse_insight_sections(text: str) -> tuple[str, list[tuple[str, str, str]]]:
     """Return the preamble and asset sections without interpreting model prose."""
-    matches = list(re.finditer(r"^##\s+(ast_[^\s]+).*?$", text, flags=re.MULTILINE))
+    # Asset ids are not required to use the old ``ast_`` prefix.  In
+    # particular, manifests produced by the capture service use ids such as
+    # ``rewind_memories/...``.  Match the heading shape emitted by
+    # ``_markdown_entry`` (id, separator, type) so Markdown
+    # headings that happen to occur inside model output are not treated as
+    # new assets.  Keep the legacy fallback for hand-authored/mock files.
+    matches = list(
+        re.finditer(
+            r"^##\s+(?P<asset_id>\S+)(?:\s+\S+)?\s+(?:image|voice_note|text_note|unknown)\s*$",
+            text,
+            flags=re.MULTILINE,
+        )
+    )
+    if not matches:
+        matches = list(re.finditer(r"^##\s+(ast_[^\s]+).*?$", text, flags=re.MULTILINE))
     if not matches:
         raise ValueError("asset insights file contains no asset sections")
     preamble = text[:matches[0].start()]
@@ -262,7 +311,8 @@ def _parse_insight_sections(text: str) -> tuple[str, list[tuple[str, str, str]]]
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
         header = match.group(0).rstrip("\r\n")
         body = text[match.end():end].strip("\r\n")
-        sections.append((match.group(1), header, body))
+        asset_id = match.groupdict().get("asset_id") or match.group(1)
+        sections.append((asset_id, header, body))
     return preamble, sections
 
 
@@ -500,11 +550,19 @@ def main() -> None:
     parser.add_argument("--enrich", action="store_true", help="Enrich image sections with Sarvam-105B")
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--dry-run", action="store_true", help="Create the artifact without API calls")
+    parser.add_argument(
+        "--multiple-speakers",
+        action="store_true",
+        help="Enable Saaras speaker diarization for voice notes",
+    )
     args = parser.parse_args()
     if args.enrich:
         print(enrich_asset_insights(args.input, args.output, args.manifest, args.workers, args.dry_run))
     else:
-        print(build_asset_insights(args.manifest, args.output, args.workers, args.dry_run))
+        print(build_asset_insights(
+            args.manifest, args.output, args.workers, args.dry_run,
+            multiple_speakers=args.multiple_speakers,
+        ))
 
 
 if __name__ == "__main__":

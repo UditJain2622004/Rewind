@@ -125,7 +125,14 @@ def _json_content(response: Any) -> str:
 
 def _parse_json_response(raw: str, label: str, allow_array: bool = False) -> dict[str, Any]:
     candidate = raw.strip()
-    fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", candidate, flags=re.DOTALL | re.IGNORECASE)
+    # Models sometimes prefix the fence with an equals sign (``= ```json``)
+    # or add surrounding whitespace.  Strip the complete fence before JSON
+    # decoding instead of passing the Markdown marker to ``json.loads``.
+    fenced = re.search(
+        r"^\s*=?\s*```(?:json)?\s*(.*?)\s*```\s*$",
+        candidate,
+        flags=re.DOTALL | re.IGNORECASE,
+    ) or re.search(r"```(?:json)?\s*(.*?)\s*```", candidate, flags=re.DOTALL | re.IGNORECASE)
     if fenced:
         candidate = fenced.group(1).strip()
     try:

@@ -82,13 +82,16 @@ def _make_llm_caller(model: str = "sarvam-105b", temperature: float = 0.2, max_t
 # Pipeline steps
 # ---------------------------------------------------------------------------
 
-def _step_asset_insights(manifest_path: Path, insights_path: Path) -> None:
+def _step_asset_insights(
+    manifest_path: Path, insights_path: Path, multiple_speakers: bool = False
+) -> None:
     """Step 1 — raw per-asset understanding (Vision + Saaras STT)."""
     from asset_insights import build_asset_insights
     logger.info("Pipeline step 1: build_asset_insights → %s", insights_path)
     build_asset_insights(
         manifest_path=str(manifest_path),
         output_path=str(insights_path),
+        multiple_speakers=multiple_speakers,
     )
 
 
@@ -141,6 +144,7 @@ def run_pipeline(
     *,
     llm_model: str = "sarvam-105b",
     progress_cb: Callable[[str, float], None] | None = None,
+    multiple_speakers: bool = False,
 ) -> dict[str, Any]:
     """Run the full pipeline synchronously (call from a thread pool).
 
@@ -168,7 +172,7 @@ def run_pipeline(
     llm = _make_llm_caller(model=llm_model, temperature=0.2, max_tokens=3500)
 
     _progress("Understanding your assets…", 0.05)
-    _step_asset_insights(manifest_path, insights_path)
+    _step_asset_insights(manifest_path, insights_path, multiple_speakers)
 
     _progress("Enriching image descriptions…", 0.25)
     _step_enrich(insights_path, enriched_path, manifest_path)

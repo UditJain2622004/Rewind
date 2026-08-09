@@ -61,7 +61,11 @@ def _parse_script(content: str) -> dict[str, Any]:
     candidate = content.strip()
     if not candidate:
         raise RuntimeError("Sarvam returned empty script content")
-    fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", candidate, flags=re.DOTALL | re.IGNORECASE)
+    fenced = re.search(
+        r"^\s*=?\s*```(?:json)?\s*(.*?)\s*```\s*$",
+        candidate,
+        flags=re.DOTALL | re.IGNORECASE,
+    ) or re.search(r"```(?:json)?\s*(.*?)\s*```", candidate, flags=re.DOTALL | re.IGNORECASE)
     if fenced:
         candidate = fenced.group(1).strip()
     try:

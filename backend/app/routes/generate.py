@@ -1,15 +1,16 @@
 """Full AI-Memory generation pipeline endpoint.
 
-POST /api/memories/{memory_id}/full-generate
+GET /api/memories/{memory_id}/full-generate
   - Fetches the saved draft (items) from MongoDB.
   - Writes assets_manifest.json for the pipeline.
   - Runs asset_insights → memory_generation → script_generation.
-  - Streams Server-Sent Events so the frontend can show progress.
+  - Streams Server-Sent Events (text/event-stream) so the frontend can show
+    step-by-step progress. Uses GET so EventSource works natively.
 
-GET /api/memories
+GET /api/memory-list
   - Returns all memories stored in MongoDB (for the Dashboard).
 
-GET /api/memories/{memory_id}
+GET /api/memory/{memory_id}
   - Returns a single memory by ID.
 """
 
@@ -85,7 +86,11 @@ def _draft_to_manifest(draft: dict) -> list[dict]:
 # SSE generator
 # ---------------------------------------------------------------------------
 
-async def _pipeline_sse(memory_id: str, manifest_data: list[dict]) -> AsyncGenerator[str, None]:
+async def _pipeline_sse(
+    memory_id: str,
+    manifest_data: list[dict],
+    multiple_speakers: bool = False,
+) -> AsyncGenerator[str, None]:
     """Run pipeline in a thread pool and yield SSE progress lines."""
 
     loop = asyncio.get_event_loop()
@@ -99,7 +104,12 @@ async def _pipeline_sse(memory_id: str, manifest_data: list[dict]) -> AsyncGener
             from pipeline_service import run_pipeline
             result = await loop.run_in_executor(
                 None,
-                lambda: run_pipeline(memory_id, manifest_data, progress_cb=progress_cb),
+                lambda: run_pipeline(
+                    memory_id,
+                    manifest_data,
+                    progress_cb=progress_cb,
+                    multiple_speakers=multiple_speakers,
+                ),
             )
             queue.put_nowait({"done": True, "result": result})
         except Exception as exc:
@@ -125,11 +135,12 @@ async def _pipeline_sse(memory_id: str, manifest_data: list[dict]) -> AsyncGener
 # Routes
 # ---------------------------------------------------------------------------
 
-@router.post("/api/memories/{memory_id}/full-generate")
+@router.get("/api/memories/{memory_id}/full-generate")
 async def full_generate(memory_id: str):
     """
     Trigger the full AI pipeline for a saved memory draft.
-    Returns an SSE stream of progress events.
+    Returns a Server-Sent Events (text/event-stream) response.
+    Uses GET so the browser EventSource API can connect natively.
     """
     db = _get_db()
     draft = None
@@ -155,7 +166,7 @@ async def full_generate(memory_id: str):
         )
 
     return StreamingResponse(
-        _pipeline_sse(memory_id, manifest_data),
+        _pipeline_sse(memory_id, manifest_data, bool(draft.get("multiple_speakers", False))),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
