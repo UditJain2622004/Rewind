@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Pause, Play, List, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play, List, X, Volume2 } from 'lucide-react';
 import WhyThisMoment from './WhyThisMoment';
 
 export default function StoryPlayer({ moments, memoryTitle }) {
@@ -8,9 +8,42 @@ export default function StoryPlayer({ moments, memoryTitle }) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [showMoments, setShowMoments] = useState(false);
   const [direction, setDirection] = useState(1);
+  const audioRef = useRef(null);
 
   const moment = moments[current];
-  const progress = ((current + 1) / moments.length) * 100;
+
+  // ─── Auto-advance on audio end ───────────────────────────────────────────
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+
+    const handleEnd = () => {
+      if (current < moments.length - 1) {
+        goTo(current + 1);
+      } else {
+        setIsPlaying(false);
+      }
+    };
+
+    el.addEventListener('ended', handleEnd);
+    return () => el.removeEventListener('ended', handleEnd);
+  }, [current, moments.length]);
+
+  // ─── Play / pause audio when isPlaying toggles ───────────────────────────
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || !moment.audioUrl) return;
+    if (isPlaying) el.play().catch(() => {});
+    else el.pause();
+  }, [isPlaying, current]);
+
+  // ─── Load and auto-play when segment changes ─────────────────────────────
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || !moment.audioUrl) return;
+    el.load();
+    if (isPlaying) el.play().catch(() => {});
+  }, [current]);
 
   const goTo = (index) => {
     setDirection(index > current ? 1 : -1);
@@ -18,16 +51,17 @@ export default function StoryPlayer({ moments, memoryTitle }) {
     setShowMoments(false);
   };
 
-  const next = () => {
-    if (current < moments.length - 1) goTo(current + 1);
-  };
-
-  const prev = () => {
-    if (current > 0) goTo(current - 1);
-  };
+  const next = () => { if (current < moments.length - 1) goTo(current + 1); };
+  const prev = () => { if (current > 0) goTo(current - 1); };
 
   return (
     <div className="fixed inset-0 bg-memory-base">
+
+      {/* Hidden audio element */}
+      {moment.audioUrl && (
+        <audio ref={audioRef} src={moment.audioUrl} preload="auto" />
+      )}
+
       {/* Photo background */}
       <motion.div
         key={moment.id}
@@ -36,11 +70,15 @@ export default function StoryPlayer({ moments, memoryTitle }) {
         transition={{ duration: 1 }}
         className="absolute inset-0"
       >
-        <img
-          src={moment.photos?.[0] || '/images/goa-cover.png'}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        {moment.photos?.[0] ? (
+          <img
+            src={moment.photos[0]}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-900/60 via-purple-900/40 to-indigo-900/60" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
       </motion.div>
 
@@ -54,10 +92,23 @@ export default function StoryPlayer({ moments, memoryTitle }) {
           </div>
         </div>
 
-        <WhyThisMoment moment={moment} />
+        <div className="flex items-center gap-2">
+          {/* Live audio indicator */}
+          {moment.audioUrl && isPlaying && (
+            <motion.div
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="glass rounded-full px-3 py-1.5 flex items-center gap-1.5 text-xs text-emerald-300"
+            >
+              <Volume2 size={12} />
+              <span>Live narration</span>
+            </motion.div>
+          )}
+          <WhyThisMoment moment={moment} />
+        </div>
       </div>
 
-      {/* AI narration */}
+      {/* AI narration text */}
       <motion.div
         key={`narration-${moment.id}`}
         initial={{ opacity: 0, y: 20 }}
@@ -85,7 +136,7 @@ export default function StoryPlayer({ moments, memoryTitle }) {
                 <motion.div
                   className="h-full bg-white rounded-full"
                   initial={false}
-                  animate={{ width: i < current ? '100%' : i === current ? '100%' : '0%' }}
+                  animate={{ width: i <= current ? '100%' : '0%' }}
                   transition={{ duration: 0.3 }}
                 />
               </button>
@@ -94,7 +145,7 @@ export default function StoryPlayer({ moments, memoryTitle }) {
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Playback Controls */}
       <div className="absolute bottom-6 sm:bottom-8 left-0 right-0 z-20">
         <div className="flex items-center justify-center gap-6">
           <button onClick={prev} disabled={current === 0} className="text-white/60 hover:text-white disabled:opacity-30 transition-colors">
@@ -148,7 +199,7 @@ export default function StoryPlayer({ moments, memoryTitle }) {
                   <div className="flex items-center gap-2">
                     <span>{m.emoji}</span>
                     <div>
-                      <p className="text-sm text-white">{m.description}</p>
+                      <p className="text-sm text-white line-clamp-1">{m.description}</p>
                       <p className="text-xs text-white/50">{m.time} • {m.location}</p>
                     </div>
                   </div>

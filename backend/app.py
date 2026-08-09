@@ -1,9 +1,17 @@
 import os
 import logging
+import sys
+from pathlib import Path
+
+# Ensure this backend directory is on sys.path so pipeline_service and the
+# individual stage modules (asset_insights, memory_generation, script_generation)
+# are always importable regardless of the working directory.
+_backend_dir = str(Path(__file__).resolve().parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
 
 # The asset-insight CLI should remain usable without installing the optional
 # FastAPI server stack. Dispatch before importing server-only dependencies.
-import sys
 if any(flag in sys.argv for flag in ("--enrich", "--dry-run", "--manifest")):
     from asset_insights import main as asset_insights_main
     asset_insights_main()
@@ -23,8 +31,9 @@ from services.memory_service import (
     handle_trigger_generation
 )
 
-# Import stt, tts, relive routers from feature branch
+# Import all routers
 from app.routes import stt, tts, relive
+from app.routes import generate as generate_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -45,10 +54,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register endpoints from feature branch
+# Register all routers
 app.include_router(stt.router)
 app.include_router(tts.router)
 app.include_router(relive.router)
+app.include_router(generate_router.router)
 
 # Mount static folder
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")

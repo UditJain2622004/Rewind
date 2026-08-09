@@ -5,6 +5,7 @@ import { Plus, Search } from 'lucide-react';
 import FeaturedMemory from './FeaturedMemory';
 import MemoryGrid from './MemoryGrid';
 import { memories, getAllMemories } from '../../data/mockData';
+import { getAllMemoriesFromDB } from '../../services/api';
 
 const categories = [
   { id: 'all', label: 'All' },
@@ -14,13 +15,50 @@ const categories = [
   { id: 'wedding', label: 'Weddings' },
 ];
 
+/** Normalize a raw MongoDB memory document into the shape the UI expects. */
+function normalizeDbMemory(doc) {
+  const id = doc.memory_id || doc._id || doc.id || `db_${Math.random().toString(36).slice(2)}`;
+  const title = doc.title || doc.name || 'Untitled Memory';
+  // Pick the first item image as cover, or fallback
+  const firstImage = (doc.items || []).find((i) => i.type === 'image' || i.type === 'photo');
+  const cover = firstImage
+    ? firstImage.file_url || firstImage.url || firstImage.preview
+    : 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80';
+  return {
+    id,
+    title,
+    subtitle: new Date(doc.updated_at || doc.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+    fullTitle: `${title}`,
+    cover,
+    description: `${(doc.items || []).length} moments`,
+    momentsCount: (doc.items || []).length,
+    contributors: [],
+    moments: [],
+    perspectives: [],
+    category: doc.category || 'milestone',
+    status: doc.status || 'draft',
+  };
+}
+
 export default function Dashboard() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [allMemoriesList, setAllMemoriesList] = useState([]);
 
   useEffect(() => {
-    setAllMemoriesList(getAllMemories());
+    const localMemories = getAllMemories();
+    setAllMemoriesList(localMemories);
+
+    // Also fetch from MongoDB and merge (deduplicate by id)
+    getAllMemoriesFromDB().then((dbDocs) => {
+      if (!dbDocs.length) return;
+      const normalized = dbDocs.map(normalizeDbMemory);
+      const existingIds = new Set(localMemories.map((m) => m.id));
+      const fresh = normalized.filter((m) => !existingIds.has(m.id));
+      if (fresh.length > 0) {
+        setAllMemoriesList((prev) => [...fresh, ...prev]);
+      }
+    }).catch(() => {/* backend offline — use local only */});
   }, []);
 
   const featured = memories[0];

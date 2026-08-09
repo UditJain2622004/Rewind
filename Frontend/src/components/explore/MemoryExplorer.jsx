@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, RotateCcw } from 'lucide-react';
+import { Send, RotateCcw, Sparkles } from 'lucide-react';
 import ExplorePrompt from './ExplorePrompt';
 import ExploreResult from './ExploreResult';
+import { askMemoryQuestion } from '../../services/api';
 
 export default function MemoryExplorer({ conversations, suggestedQuestions, memoryId, memoryTitle }) {
   const [results, setResults] = useState([]);
@@ -18,17 +19,41 @@ export default function MemoryExplorer({ conversations, suggestedQuestions, memo
     scrollToBottom();
   }, [results, isTyping]);
 
-  const askQuestion = (question) => {
-    const match = conversations.find((c) =>
-      c.question.toLowerCase() === question.toLowerCase()
-    ) || conversations[Math.floor(Math.random() * conversations.length)];
-
+  const askQuestion = async (question) => {
     setIsTyping(true);
-
-    setTimeout(() => {
-      setResults((prev) => [...prev, { ...match, question }]);
+    try {
+      // Call the real backend — grounded when AI artifacts exist, keyword fallback otherwise
+      const data = await askMemoryQuestion(question, memoryId);
+      setResults((prev) => [
+        ...prev,
+        {
+          question,
+          answer: data.answer,
+          grounded: data.grounded,
+          // Pass along a related photo from static conversations if available
+          relatedPhoto: (() => {
+            const match = (conversations || []).find(
+              (c) => c.question.toLowerCase() === question.toLowerCase()
+            );
+            return match?.relatedPhoto || null;
+          })(),
+          momentId: null,
+        },
+      ]);
+    } catch (err) {
+      setResults((prev) => [
+        ...prev,
+        {
+          question,
+          answer: 'Could not reach the AI assistant. Make sure the backend is running.',
+          grounded: false,
+          relatedPhoto: null,
+          momentId: null,
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 800);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -44,12 +69,15 @@ export default function MemoryExplorer({ conversations, suggestedQuestions, memo
 
   return (
     <div className="flex flex-col h-full space-y-3 relative">
-      
-      {/* Minimal Header */}
+
+      {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
         <div>
           <h3 className="font-bold text-sm text-white">Ask about {memoryTitle}</h3>
-          <p className="text-[11px] text-white/50">Search moments, photos & notes</p>
+          <p className="text-[11px] text-white/50 flex items-center gap-1">
+            <Sparkles size={10} className="text-amber-400" />
+            AI-grounded answers from your memory
+          </p>
         </div>
 
         {results.length > 0 && (
@@ -77,7 +105,7 @@ export default function MemoryExplorer({ conversations, suggestedQuestions, memo
           <ExploreResult key={i} result={result} memoryId={memoryId} />
         ))}
 
-        {/* Typing Indicator */}
+        {/* Typing indicator */}
         <AnimatePresence>
           {isTyping && (
             <motion.div
@@ -87,7 +115,7 @@ export default function MemoryExplorer({ conversations, suggestedQuestions, memo
               className="flex justify-start"
             >
               <div className="bg-[#18181c] border border-white/10 rounded-2xl rounded-tl-xs px-4 py-2.5 flex items-center gap-2">
-                <span className="text-xs text-white/50">Thinking...</span>
+                <span className="text-xs text-white/50">Thinking…</span>
                 <div className="flex gap-1">
                   {[0, 1, 2].map((i) => (
                     <motion.div
@@ -106,20 +134,20 @@ export default function MemoryExplorer({ conversations, suggestedQuestions, memo
         <div ref={chatEndRef} />
       </div>
 
-      {/* Simple Clean Input Bar */}
+      {/* Input Bar */}
       <form onSubmit={handleSubmit} className="relative pt-1 shrink-0">
         <div className="relative">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={`Ask anything about ${memoryTitle}...`}
+            placeholder={`Ask anything about ${memoryTitle}…`}
             className="w-full bg-[#18181c] border border-white/10 focus:border-white/30 rounded-xl pl-4 pr-12 py-3 text-xs sm:text-sm text-white placeholder:text-white/30 focus:outline-none transition-colors"
           />
-
           <button
             type="submit"
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+            disabled={isTyping}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-40 text-white transition-colors"
           >
             <Send size={14} />
           </button>
