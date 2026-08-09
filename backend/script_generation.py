@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import re
 import tempfile
 from pathlib import Path
 from typing import Any
+
+
+LOGGER = logging.getLogger("ai_memory.script_generation")
 
 
 def _client():
@@ -23,16 +27,39 @@ def _client():
 
 
 def _response_text(response: Any) -> str:
+    def content_text(content: Any) -> str:
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts: list[str] = []
+            for part in content:
+                if isinstance(part, dict):
+                    parts.append(str(part.get("text") or part.get("content") or ""))
+                else:
+                    parts.append(str(getattr(part, "text", "") or getattr(part, "content", "") or ""))
+            return "".join(parts)
+        return str(content or "")
+
     if isinstance(response, dict):
-        return str(response.get("choices", [{}])[0].get("message", {}).get("content", ""))
+        choices = response.get("choices", []) or []
+        content = choices[0].get("message", {}).get("content", "") if choices else ""
+        return content_text(content)
     choices = getattr(response, "choices", None) or []
     if not choices:
         return ""
-    return str(getattr(choices[0].message, "content", "") or "")
+    return content_text(getattr(choices[0].message, "content", ""))
+
+
+def _response_request_id(response: Any) -> str | None:
+    if isinstance(response, dict):
+        return response.get("request_id") or response.get("id")
+    return getattr(response, "request_id", None) or getattr(response, "id", None)
 
 
 def _parse_script(content: str) -> dict[str, Any]:
     candidate = content.strip()
+    if not candidate:
+        raise RuntimeError("Sarvam returned empty script content")
     fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", candidate, flags=re.DOTALL | re.IGNORECASE)
     if fenced:
         candidate = fenced.group(1).strip()
@@ -88,6 +115,8 @@ def _normalise_script(
         segment["caption_text"] = str(segment.get("caption_text") or narration[:80])
         segment["mood"] = str(segment.get("mood") or "neutral")
         output.append(segment)
+    if not any(segment["narration_text"].strip() for segment in output):
+        raise RuntimeError(f"Sarvam returned a {variant} script with no narration text")
     script["segments"] = output
     return script
 
@@ -126,13 +155,30 @@ def generate_script(
     speaker: str,
     max_tokens: int,
 ) -> dict[str, Any]:
-    response = _client().chat.completions(
-        messages=_messages(variant, memory, narrative),
-        model=model,
-        temperature=0.45 if variant == "relive" else 0.6,
-        max_tokens=max_tokens,
-    )
-    return _normalise_script(_response_text(response), memory, variant, language_code, speaker)
+    client = _client()
+    messages = _messages(variant, memory, narrative)
+    for attempt in (1, 2):
+        if attempt == 2:
+            # A compact retry avoids losing the entire script when a long
+            # narrative causes an empty response. Memory JSON still carries
+            # the structured facts and asset references.
+            messages = _messages(variant, memory, "")
+            messages[0]["content"] += " Return 3-6 short segments and do not omit narration_text."
+        response = client.chat.completions(
+            messages=messages,
+            model=model,
+            temperature=0.45 if variant == "relive" else 0.6,
+            max_tokens=max_tokens,
+        )
+        content = _response_text(response)
+        LOGGER.info(
+            "script response: variant=%s attempt=%d request_id=%s content_chars=%d",
+            variant, attempt, _response_request_id(response), len(content),
+        )
+        if content.strip():
+            return _normalise_script(content, memory, variant, language_code, speaker)
+        LOGGER.warning("empty Sarvam response: variant=%s attempt=%d", variant, attempt)
+    raise RuntimeError(f"Sarvam returned no usable {variant} script after 2 attempts")
 
 
 def _atomic_write(path: Path, content: str) -> None:
@@ -173,7 +219,9 @@ def main() -> None:
     parser.add_argument("--language-code", default="en-IN")
     parser.add_argument("--speaker", default="shubh")
     parser.add_argument("--max-tokens", type=int, default=3500)
+    parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     args = parser.parse_args()
+    logging.basicConfig(level=getattr(logging, args.log_level), format="%(asctime)s %(levelname)s %(name)s %(message)s")
     for path in generate_all(
         args.memory_json, args.memory_md, args.output_dir, args.model,
         args.language_code, args.speaker, args.max_tokens,
