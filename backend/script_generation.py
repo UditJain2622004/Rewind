@@ -13,7 +13,7 @@ from typing import Any
 
 
 LOGGER = logging.getLogger("ai_memory.script_generation")
-SCRIPT_VARIANTS = ("relive", "share", "viral", "reaction")
+SCRIPT_VARIANTS = ("relive", "share", "viral", "reaction", "trailer", "roast")
 
 
 def _client():
@@ -151,17 +151,53 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             "imitation of any real creator. Use playful observations, escalating jokes, and punchlines based only on "
             "the supplied facts. The host can say things like 'so apparently' and 'this is where it gets worse'."
         )
+    elif variant == "trailer":
+        direction = (
+            "Make this a ridiculously dramatic movie-trailer teaser for an otherwise ordinary real-life memory. "
+            "Treat small setbacks as giant stakes, build tension, and end on a satisfying emotional or comic sting. "
+            "Use a cinematic narrator voice, but stay grounded in the supplied facts."
+        )
+    elif variant == "roast":
+        direction = (
+            "Make this a playful self-roast of the group and the experience. Punch up at the situation, sleep "
+            "deprivation, bad luck, and overconfidence, never at protected traits or personal vulnerabilities. "
+            "Make the people feel like insiders laughing together, not targets of ridicule."
+        )
     else:
         raise ValueError(f"Unknown script variant: {variant}")
     return [
         {"role": "system", "content": (
-            "You write grounded video narration for a personal memory. "
-            f"{direction} Use only facts in the supplied memory. Return JSON with a segments array; "
-            "each segment should contain narration_text, asset_ids, caption_text, and mood. "
-            "Write for speech, not an article: use short natural phrases, contractions, conversational rhythm, and "
-            "punctuation for pauses. Use emotion-bearing wording and choose one mood from excited, warm, nostalgic, "
-            "funny, somber, or neutral for every segment so TTS can perform it well. Do not use em dashes, stage "
-            "directions, brackets, or markup in narration_text. Keep segments chronological and return JSON only."
+            "You write high-retention, spoken video narration for a personal memory. Your output is sent directly to "
+            "text-to-speech and edited against photos, so write for ears, timing, and reaction, not for silent reading. "
+            f"Variant direction: {direction}\n\n"
+            "Grounding rules:\n"
+            "- Use only facts supplied in the memory. You may heighten the comedy or emotion, but never fabricate a "
+            "person, event, outcome, location, quote, or relationship.\n"
+            "- Keep the story chronological unless the requested hook deliberately starts at the funniest or most "
+            "dramatic real moment, then quickly returns to the beginning.\n"
+            "- Attach each segment to the asset IDs that visibly support it. Voice-note IDs can support narration but "
+            "do not pretend a voice note is a photograph.\n\n"
+            "Spoken-word rules:\n"
+            "- Write 1 to 3 short sentences per segment. Prefer 7 to 22 spoken words per sentence.\n"
+            "- Use contractions, fragments, repetition, direct verbs, and natural pauses. A line should sound good "
+            "when read aloud once, not look impressive in an essay.\n"
+            "- Use commas, full stops, ellipses, and occasional exclamation marks to signal pace and emotion. Do not "
+            "use stage directions, bracketed notes, markdown, or em dashes.\n"
+            "- Let emotion appear in the words. For example: 'You were exhausted. Still, you showed up.' is stronger "
+            "for TTS than a detached factual sentence.\n\n"
+            "Retention and comedy rules:\n"
+            "- Give the first segment a hook within the first sentence. Use contrast, a surprising detail, a question, "
+            "or an unfinished setup.\n"
+            "- Alternate setup and payoff. Do not stack vague hype. Every joke needs a fact-based target and a clean "
+            "payoff.\n"
+            "- Escalate: arrival, ambition, complications, funniest low point, then the emotional or comic close.\n"
+            "- Be vivid and specific. Instead of 'it was fun', use the supported moment that made it funny or moving.\n\n"
+            "TTS and JSON requirements:\n"
+            "- Return JSON only, as an object with a segments array.\n"
+            "- Each segment needs narration_text, asset_ids, caption_text, and mood.\n"
+            "- mood must be one of: excited, warm, nostalgic, funny, somber, neutral. Match it to the spoken line.\n"
+            "- caption_text must be short, readable on screen, and not merely repeat the narration.\n"
+            "- Do not use an em dash anywhere. If a pause is needed, use a comma, a full stop, or an ellipsis instead."
         )},
         {"role": "user", "content": (
             f"Variant: {variant}\n\nMemory JSON:\n{json.dumps(memory, ensure_ascii=False, indent=2)}"
