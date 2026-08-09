@@ -178,7 +178,9 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             "- Attach each segment to the asset IDs that visibly support it. Voice-note IDs can support narration but "
             "do not pretend a voice note is a photograph.\n\n"
             "Spoken-word rules:\n"
-            "- Write 1 to 3 short sentences per segment. Prefer 7 to 22 spoken words per sentence.\n"
+            "- Return 10 to 14 segments. This is mandatory. A script with fewer than 10 segments is incomplete.\n"
+            "- Treat each segment as one spoken line or beat. Write 1 to 2 short sentences per segment. Prefer 7 to "
+            "22 spoken words per sentence.\n"
             "- Use contractions, fragments, repetition, direct verbs, and natural pauses. A line should sound good "
             "when read aloud once, not look impressive in an essay.\n"
             "- Use commas, full stops, ellipses, and occasional exclamation marks to signal pace and emotion. Do not "
@@ -194,6 +196,7 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             "- Be vivid and specific. Instead of 'it was fun', use the supported moment that made it funny or moving.\n\n"
             "TTS and JSON requirements:\n"
             "- Return JSON only, as an object with a segments array.\n"
+            "- segments must contain at least 10 items and no more than 14 items.\n"
             "- Each segment needs narration_text, asset_ids, caption_text, and mood.\n"
             "- mood must be one of: excited, warm, nostalgic, funny, somber, neutral. Match it to the spoken line.\n"
             "- caption_text must be short, readable on screen, and not merely repeat the narration.\n"
@@ -223,7 +226,7 @@ def generate_script(
             # narrative causes an empty response. Memory JSON still carries
             # the structured facts and asset references.
             messages = _messages(variant, memory, "")
-            messages[0]["content"] += " Return 3-6 short segments and do not omit narration_text."
+            messages[0]["content"] += " Return 10-14 short segments and do not omit narration_text."
         response = client.chat.completions(
             messages=messages,
             model=model,
@@ -236,9 +239,16 @@ def generate_script(
             variant, attempt, _response_request_id(response), len(content),
         )
         if content.strip():
-            return _normalise_script(content, memory, variant, language_code, speaker)
+            script = _normalise_script(content, memory, variant, language_code, speaker)
+            if len(script["segments"]) >= 10:
+                return script
+            LOGGER.warning(
+                "short Sarvam script: variant=%s attempt=%d segments=%d; retrying",
+                variant, attempt, len(script["segments"]),
+            )
+            continue
         LOGGER.warning("empty Sarvam response: variant=%s attempt=%d", variant, attempt)
-    raise RuntimeError(f"Sarvam returned no usable {variant} script after 2 attempts")
+    raise RuntimeError(f"Sarvam returned no usable {variant} script with at least 10 segments after 2 attempts")
 
 
 def _atomic_write(path: Path, content: str) -> None:
