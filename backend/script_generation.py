@@ -85,7 +85,9 @@ def _parse_script(content: str) -> dict[str, Any]:
         candidate = fenced.group(1).strip()
     try:
         value = json.loads(candidate)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
+        if candidate.strip().startswith("{") or candidate.strip().startswith("["):
+            raise ValueError(f"Failed to parse JSON script: {exc}. Truncated output?")
         return {"segments": [{"narration_text": content.strip()}]}
     if isinstance(value, list):
         return {"segments": value}
@@ -125,6 +127,9 @@ def _normalise_script(
     if not isinstance(segments, list) or not segments:
         segments = [{"narration_text": content.strip()}]
     fallback_assets = _memory_asset_ids(memory)
+    allowed_speakers = [s.strip() for s in SPEAKER_MAP.get(variant, speaker).split(",") if s.strip()]
+    speaker_mapping: dict[str, str] = {}
+
     output: list[dict[str, Any]] = []
     for index, raw_segment in enumerate(segments, start=1):
         segment = raw_segment if isinstance(raw_segment, dict) else {"narration_text": str(raw_segment)}
@@ -134,8 +139,21 @@ def _normalise_script(
         segment["asset_ids"] = segment.get("asset_ids") if isinstance(segment.get("asset_ids"), list) else fallback_assets
         segment["caption_text"] = _remove_em_dashes(str(segment.get("caption_text") or narration[:80]))
         segment["mood"] = str(segment.get("mood") or "neutral")
-        if "speaker" in segment:
-            segment["speaker"] = str(segment["speaker"])
+
+        seg_speaker = segment.get("speaker")
+        if seg_speaker:
+            seg_speaker_str = str(seg_speaker).strip().lower()
+            if seg_speaker_str in allowed_speakers:
+                segment["speaker"] = seg_speaker_str
+            else:
+                if seg_speaker_str not in speaker_mapping:
+                    assigned_idx = len(speaker_mapping) % len(allowed_speakers)
+                    speaker_mapping[seg_speaker_str] = allowed_speakers[assigned_idx]
+                segment["speaker"] = speaker_mapping[seg_speaker_str]
+        else:
+            assigned_idx = (index - 1) % len(allowed_speakers)
+            segment["speaker"] = allowed_speakers[assigned_idx]
+
         output.append(segment)
     if not any(segment["narration_text"].strip() for segment in output):
         raise RuntimeError(f"Sarvam returned a {variant} script with no narration text")
@@ -152,32 +170,20 @@ def _remove_em_dashes(text: str) -> str:
     return re.sub(r"\s{2,}", " ", text).strip()
 
 
-def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict[str, str]]:
+def _messages(variant: str, memory: dict[str, Any], narrative: str, speaker: str) -> list[dict[str, str]]:
     playbooks = {
-        "roast": """ROAST PLAYBOOK:
-- Write a playful insider self-roast. The group and the situation are in on the joke.
-- Punch up at overconfidence, exhaustion, terrible timing, minor bad luck, and chaotic planning.
-- Never attack protected traits, appearance, private vulnerabilities, or people who are not part of the memory.
-- Start by exposing the gap between the group's plan and what the evidence says actually happened.
-- Make each joke fact-based, then move on. Do not repeat the same joke in different words.
-- Pair every roast with affection or admiration so the memory still feels warm.
-- Let the funniest low point become a badge of honour by the ending.
-- Use spoken reactions and clean punchlines, not long written comedy paragraphs.
-- Example rhythm only, do not copy: "We brought ambition. Sleep was apparently optional."
-- End by making the imperfect outcome feel like the reason the memory is worth sharing.""",
-        "roast_commentary": """ROAST COMMENTARY PLAYBOOK:
-- Write as an external comedian roasting the group, not as a member of the group.
-- Use third person for the people and situation. Do not say I did this, we did this, or my friends did this.
-- The narrator has permission to be blunt, dramatic, sarcastic, and very funny about the documented chaos.
-- Roast decisions, timing, exhaustion, overconfidence, and the gap between ambition and reality.
-- Do not roast protected traits, appearance, private pain, or anything not supported by the memory.
-- Begin with a sharp thesis about what kind of people would voluntarily create this story.
-- Give every factual beat a comic angle, then escalate to the next more ridiculous beat.
-- Use fake seriousness, mock analysis, courtroom language, sports commentary, or documentary authority for contrast.
-- Include at least one callback to the opening thesis and one line that sounds like a shareable quote.
-- Example rhythm only, do not copy: "The mission was innovation. The evidence suggests advanced sleep deprivation."
-- Finish with a verdict that is savage in wording but affectionate in spirit.""",
-        "village_elder": """VILLAGE ELDER PLAYBOOK:
+        "couple_bickering": """COUPLE BICKERING PLAYBOOK:
+- Narrate as two voices mid-bicker who clearly have this fight often and both find it a little funny even while committing to it.
+- Structure as rapid interruption — voice two should regularly cut voice one off mid-sentence. Use dashes to mark the cut: "I was just trying to—" / "—no."
+- Every jab must escalate the pettiness, not just restate the last one. Use a one-upping structure: each line raises the stakes of how "serious" this minor thing is.
+- Include at least one moment of exaggerated mock-offense over something objectively tiny — treat it with the emotional weight of a real betrayal, then let the absurdity of that weight be the joke.
+- Include one "receipt" — a suspiciously specific detail (exact time, exact word someone used) that the other voice clearly wasn't expecting to get called out on.
+- Do NOT resolve into a clean, wholesome truce. End on a chaotic non-resolution — one voice getting the last word while the other is visibly still not over it, or both suddenly agreeing on something absurd instead of what they were fighting about.
+- Never touch appearance, insecurities, or anything not clearly part of the shared memory.
+- Example rhythm only, do not copy: "'I said five minutes.' 'You said five minutes forty minutes ago.' 'Time is a construct.' 'It's really not, though.'"
+- End abruptly on the sharpest, pettiest line of the whole exchange — no soft landing, no "but we love each other" bow on top.""",
+
+"village_elder": """VILLAGE ELDER PLAYBOOK:
 - Narrate as an intense, ancient village elder telling a hilarious cautionary tale to the younger generation.
 - This is an original character voice, not an imitation of any real person or comedian.
 - Use a grave, commanding tone for ordinary facts. The comedy comes from the mismatch between seriousness and reality.
@@ -189,59 +195,80 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
 - Include a moral or proverb-like line near the end, but make the moral funny and specific to the real memory.
 - Example rhythm only, do not copy: "And so they entered the night without sleep. The night entered them instead."
 - End with a thunderous final verdict that sounds wise, sarcastic, and completely unforgettable.""",
-        "couple_bickering": """COUPLE BICKERING PLAYBOOK:
-- Narrate as a playful back-and-forth between two voices in a relationship, gently bickering about the memory.
-- Use the viral "gf vs bf" banter format — one voice teasing, the other defending, both clearly affectionate underneath.
-- Base every jab on real details from the memory (who planned it, who overslept, who forgot something), never invented flaws.
-- Keep the tone like an inside joke a couple would actually post, not a real argument — no contempt, no genuine criticism.
-- Let both voices get a turn to "win" a point so it feels balanced, not one-sided.
-- Never touch appearance, insecurities, or anything not clearly part of the shared memory.
-- Example rhythm only, do not copy: "'I said left.' 'You said it AFTER we turned right.' 'Details.'"
-- End with a line that resolves the bicker into a warm, teasing truce — proof they're a team despite the chaos.""",
-        "this_or_that": """THIS OR THAT PLAYBOOK:
-- Narrate using the viral "this or that" rapid-fire format, framing real moments from the memory as binary choices.
-- Structure each beat as a quick two-option setup followed by which one "won," based on what actually happened.
-- Use snappy, fast-paced delivery — short phrases, minimal explanation, quick cuts between choices.
-- Ground every "this or that" in a real detail from the memory (sleep or snacks, plan A or plan B, hype or panic).
-- Let the choices build a mini-story of the memory when strung together, not just a random list.
-- Example rhythm only, do not copy: "Sleep or snacks? Snacks. Plan or chaos? Also chaos, somehow both won."
-- End with the ultimate "this or that" — the ending itself framed as the final, funniest choice they made.""",
-        "expectation_vs_reality": """EXPECTATION VS REALITY PLAYBOOK:
-- Narrate using the viral "expectation vs reality" split format, contrasting the plan with what actually happened.
-- Open each beat with the confident "expectation" version, then cut to the messier "reality" version.
-- Use a clean, punchy rhythm — short expectation line, short reality line, quick contrast, move on.
-- Keep the reality beats grounded in true details from the memory, exaggerated only for comic timing, not fabricated.
-- Maintain affection throughout — reality should feel endearing and funny, not disappointing.
-- Example rhythm only, do not copy: "Expectation: arrive early, well rested, fully prepared. Reality: arrive, period."
-- End by declaring reality the better story anyway, turning the gap into the punchline.""",
-        "grwm_storytime": """GET READY WITH ME STORYTIME PLAYBOOK:
-- Narrate as a casual "get ready with me" storytime — talking through the memory the way someone talks while doing their routine.
-- Use the genre's meandering, conversational tone: tangents, asides, "okay so basically," "anyway—" transitions.
-- Let the story unfold gradually with small real details revealed as if remembered mid-sentence.
-- Include a "wait, it gets worse" or "wait, it gets better" pivot partway through, genre staple for retention.
-- Keep it intimate and casual, like a close friend narrating, not performative or exaggerated.
-- Example rhythm only, do not copy: "So okay — we had this whole plan, right? Anyway, none of it happened, but stay with me."
-- End with a casual, trailing-off button line, like the story just naturally wraps up.""",
-        "hot_take_debate": """HOT TAKE / UNPOPULAR OPINION PLAYBOOK:
-- Narrate as someone delivering a confident "unpopular opinion" or "hot take" about the group's memory.
-- Open with a bold, deadpan claim that reframes an ordinary moment as a controversial stance.
-- Defend the take with mock-serious reasoning pulled from real details in the memory.
-- Use the genre's confident, slightly combative delivery — daring the listener to disagree.
-- Keep the "controversy" totally harmless and specific to the group's own choices, nothing genuinely divisive.
-- Example rhythm only, do not copy: "Hot take: the trip wasn't ruined by no sleep. It was made by no sleep. Fight me."
-- End by doubling down on the take as the final, unshakeable verdict.""",
-        "rate_out_of_ten": """RATE OUT OF TEN PLAYBOOK:
-- Narrate using the viral "rating things out of 10" format, scoring individual moments from the memory.
-- Give each real beat a quick, confident numeric rating with a one-line justification.
-- Use rapid pacing — score, reason, next score, building comedic momentum through the list.
-- Let ratings be intentionally inconsistent or biased in funny ways (e.g. rating chaos a 10/10 despite it "going wrong").
-- Base every score on something that actually happened, not invented details.
-- Example rhythm only, do not copy: "The plan: 3 out of 10. The commitment to the plan anyway: 11 out of 10."
-- End with an overall final score for the whole memory that ties every beat together.""",
+
+"this_or_that": """THIS OR THAT PLAYBOOK:
+- Narrate using rapid-fire "this or that" binary choices pulled from real moments in the memory.
+- Each round: state the two options fast, pick a winner instantly, add ONE word of justification max. No explaining, no lingering.
+- Make at least one round a fake binary where both options are obviously terrible, and the "winner" is picked with total confidence anyway.
+- Increase speed as it goes — later rounds should feel more clipped and rapid than the opening ones.
+- Ground every choice in something that actually happened; the joke is the confident tone applied to trivial stakes, not the invention of drama.
+- Example rhythm only, do not copy: "Sleep or snacks? Snacks. Dignity or the group photo? Neither. Deleted."
+- End with the ultimate "this or that" delivered as if it's the biggest decision of their lives — then reveal it was nothing.""",
+
+"expectation_vs_reality": """EXPECTATION VS REALITY PLAYBOOK:
+- Narrate using tight expectation/reality pairs pulled from the memory — one confident line, one deflating line, repeat.
+- Keep the expectation line grand and specific (not "we'd do great" but the literal plan they had).
+- Land the reality line on the harshest, funniest possible word, placed last in the sentence — cut anything after the punchline.
+- Use a widening gap structure: early pairs are a small mismatch, later pairs are an enormous mismatch, biggest gap saved for the final pair.
+- Let one pair subvert the pattern — reality accidentally beats expectation — for a surprise beat before the ending.
+- Example rhythm only, do not copy: "Expectation: arrive early, rested, prepared. Reality: arrived. That's the sentence. That's all reality gave us."
+- End by crowning reality the funnier, better story — one confident final line, no explanation needed.""",
+
+"grwm_storytime": """GET READY WITH ME STORYTIME PLAYBOOK:
+- Narrate like a friend mid-routine casually spiraling into telling this story, getting more worked up as they go.
+- Start deliberately low-energy and mundane, then let the energy visibly rise as the "story" hooks the narrator themselves.
+- Include one interrupting tangent that seems like a detour but pays off as a setup later — genre staple, don't skip it.
+- Build to a "wait, it gets worse" pivot that's actually the funniest, most specific detail in the whole memory — don't undersell it.
+- Keep asides short and punchy ("anyway—", "so obviously") rather than long rambling explanations; ramble in energy, not in word count.
+- Example rhythm only, do not copy: "So we had a plan. A whole plan. Anyway, we do not talk about the plan anymore."
+- End mid-thought, like the narrator got distracted by how funny it still is, cutting off on the biggest laugh line.""",
+
+"hot_take_debate": """HOT TAKE / UNPOPULAR OPINION PLAYBOOK:
+- Open with a bold, confident claim stated as fact, zero hedging, designed to sound mildly insane for one second before it clicks.
+- Defend the take with escalating "evidence" that gets more absurd and more specific with each point — three points max, funniest last.
+- Use combative, unbothered delivery throughout — the narrator should sound annoyed anyone would disagree with something this obviously true.
+- Include one moment where the narrator preemptively shuts down an imagined objection ("and before you say—") for extra confidence comedy.
+- Keep the "controversy" harmless and specific to the group's own choices — the take should be objectively small stakes delivered like it's a hill to die on.
+- Example rhythm only, do not copy: "Unpopular opinion: the trip wasn't ruined by zero sleep, it was CARRIED by zero sleep. Don't argue with results."
+- End by refusing to back down at all — the most stubborn, funniest version of the original claim, no softening.""",
+
+"rate_out_of_ten": """RATE OUT OF TEN PLAYBOOK:
+- Score real moments from the memory rapid-fire, number first, reason second, one breath each — no throat-clearing.
+- Make the scores intentionally, hilariously inconsistent — rate the disaster higher than the actual good decision, and don't acknowledge the inconsistency, just move on.
+- Include one score that's deliberately impossible (negative, over 10, a fraction) for a rule-breaking laugh.
+- Keep justifications under six words wherever possible — the shorter and more confident, the funnier.
+- Build toward the highest-stakes-sounding score being reserved for the smallest, dumbest detail in the memory.
+- Example rhythm only, do not copy: "The plan: 3 out of 10. Sticking to it anyway: 11 out of 10. Math isn't real."
+- End with one absurdly overqualified final score for the whole memory — deliver it like an awards announcement, then cut immediately.""",
+
+"glow_up_recap": """GLOW UP / THEN VS NOW PLAYBOOK:
+- Open with the ambitious "before" stated with completely straight-faced confidence — no wink, no foreshadowing.
+- Contrast with the chaotic "during" using short, escalating beats — each one a bigger gap from the plan than the last.
+- Land the "after" as an unexpectedly triumphant, specific detail — not a vague "we made it," but the exact dumb thing that counted as victory.
+- Use rule-of-three in the "during" section: two real chaos beats, then a third that breaks the pattern entirely for a surprise laugh.
+- Keep the triumphant tone even while describing the mess — the confidence never wavers, only the facts get worse.
+- Example rhythm only, do not copy: "We started with a plan. We ended with a plan, four typos, and a group photo nobody's allowed to post."
+- End on the single funniest specific detail as the "glow up" — deliver it like a mic drop, no wrap-up sentence after.""",
+
+"red_flag_green_flag": """RED FLAG GREEN FLAG PLAYBOOK:
+- Call out real behaviors from the memory in quick alternating red flag / green flag verdicts — no build-up, just the flag and one sharp reason.
+- Keep each verdict under eight words. If it needs more, it's not sharp enough yet — cut it down.
+- Include one flag that's deliberately misjudged (an obvious green flag called a red flag, or vice versa) for a rule-breaking laugh.
+- Escalate the flags — early ones mild, later ones dramatically overblown for a moment before snapping back to something trivial.
+- Base every judgment on something real; the joke is confident overreaction to small stakes, not invented behavior.
+- Example rhythm only, do not copy: "Booked it at midnight — red flag. Showed up anyway with snacks — green flag. Snacks were stale — also somehow a green flag."
+- End with a final flag count delivered like a courtroom verdict, funny and decisive, no soft landing after.""",
     }
     if variant not in playbooks:
         raise ValueError(f"Unknown script variant: {variant}")
-    viral_core = """VIRAL ENERGY CORE:
+
+    speaker_list = speaker.split(",")
+    if len(speaker_list) > 1:
+        speaker_instruction = f"- This format requires multiple speakers. You MUST include a 'speaker' field in each segment and alternate between EXACTLY these allowed speaker IDs: {', '.join(speaker_list)}. Do NOT use any other speaker names."
+    else:
+        speaker_instruction = f"- If you include a 'speaker' field in a segment, it MUST be EXACTLY this allowed speaker ID: {speaker_list[0]}."
+
+    viral_core = """VIRAL STORY STRUCTURE:
 - Assume the audience is one swipe away from leaving. Earn attention in the first sentence.
 - Every few beats must contain a turn: a reveal, contrast, escalation, joke, emotional hit, or visual payoff.
 - Prefer specific absurdity over empty hype. The actual detail is funnier than the word hilarious.
@@ -305,7 +332,7 @@ def _messages(variant: str, memory: dict[str, Any], narrative: str) -> list[dict
             "TTS and JSON requirements:\n"
             "- Return JSON only, as an object with a segments array.\n"
             "- Each segment needs narration_text, asset_ids, caption_text, and mood.\n"
-            "- For multiple speakers (e.g. couple bickering), include a 'speaker' field in each segment with their name (e.g., 'neha', 'rahul').\n"
+            f"{speaker_instruction}\n"
             "- mood must be one of: excited, warm, nostalgic, funny, somber, neutral. Match it to the spoken line.\n"
             "- caption_text must be short, readable on screen, and not merely repeat the narration.\n"
             "- Do not use an em dash anywhere. If a pause is needed, use a comma, a full stop, or an ellipsis instead."
@@ -357,13 +384,13 @@ def generate_script(
     max_tokens: int,
 ) -> dict[str, Any]:
     client = _client()
-    messages = _messages(variant, memory, narrative)
+    messages = _messages(variant, memory, narrative, speaker)
     for attempt in (1, 2):
         if attempt == 2:
             # A compact retry avoids losing the entire script when a long
             # narrative causes an empty response. Memory JSON still carries
             # the structured facts and asset references.
-            messages = _messages(variant, memory, "")
+            messages = _messages(variant, memory, "", speaker)
             messages[0]["content"] += " Return a complete script and do not omit narration_text."
         response = client.chat.completions(
             messages=messages,
@@ -377,9 +404,12 @@ def generate_script(
             variant, attempt, _response_request_id(response), len(content),
         )
         if content.strip():
-            script = _normalise_script(content, memory, variant, language_code, speaker)
-            return script
-        LOGGER.warning("empty Sarvam response: variant=%s attempt=%d", variant, attempt)
+            try:
+                script = _normalise_script(content, memory, variant, language_code, speaker)
+                return script
+            except ValueError as exc:
+                LOGGER.warning("Parsing failed on attempt %d: %s", attempt, exc)
+        LOGGER.warning("empty or invalid Sarvam response: variant=%s attempt=%d", variant, attempt)
     raise RuntimeError(f"Sarvam returned no usable {variant} script after 2 attempts")
 
 
